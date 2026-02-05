@@ -3,7 +3,5 @@ wind,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
 ccgt,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
 ocgt,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
 ens,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
-battery,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
-e_demand,battery,2030,1.0,1.0,0.0,0.0,,1.0
-hydro_reservoir,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
-hydro_reservoir,spillage,2030,1.0,0.0,0.0,0.0,,1.0
+storage,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
+e_demand,storage,2030,1.0,1.0,0.0,0.0,,1.0

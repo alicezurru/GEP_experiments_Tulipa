@@ -6,7 +6,7 @@ using Plots
 # to make results reproducible
 Random.seed!(42)
 
-function make_square(scenario::String, xmin, xmax, ymin, ymax) # this creates 100 points in the square with indicated vertices: 4 fixed corner points and 96 randomly generated inside
+function make_square(scenario, xmin, xmax, ymin, ymax) # this creates 100 points in the square with indicated vertices: 4 fixed corner points and 96 randomly generated inside
     n = 100
     year = fill(2030, n)
     scenario_col = fill(scenario, n)
@@ -34,13 +34,13 @@ function make_square(scenario::String, xmin, xmax, ymin, ymax) # this creates 10
 end
 
 
-output_dir = "my_experiment_2d/input_data/"
+output_dir = "input_data/"
 for i in 0:5 # closer and closer to each other
     increment = 0.05
 
     # to build each scenario's squares (adjacent squares)
-    red_df = make_square("red", 0.25, 0.50 + increment * i, 0.50, 0.75)
-    blue_df = make_square("blue", 0.50 - increment * i, 0.75, 0.50, 0.75)
+    red_df = make_square(0, 0.25, 0.50 + increment * i, 0.50, 0.75)
+    blue_df = make_square(1, 0.50 - increment * i, 0.75, 0.50, 0.75)
 
     # combine it in 200 rows (red first, then blue)
     df_profiles = vcat(red_df, blue_df)
@@ -83,5 +83,5 @@ for i in 0:5 # closer and closer to each other
         ylims=(0.0, 1.0),
     )
 
-    savefig(plt, "my_experiment_2d/scenarios_$i.png")
+    savefig(plt, "scenarios_$i.png")
 end

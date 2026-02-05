@@ -1,0 +1,7 @@
+base_name,period_duration,method,distance,weight_type,niters,learning_rate,stochastic_method,profiles_type,run_case
+convex_cross_0,1,convex_hull,Euclidean,convex,2000,0.1,cross_scenario,5,true
+convex_per_0,1,convex_hull,Euclidean,convex,2000,0.1,per_scenario,5,true
+conical_cross_0,1,conical_hull,Euclidean,conical,2000,0.1,cross_scenario,5,true
+conical_per_0,1,conical_hull,Euclidean,conical,2000,0.1,per_scenario,5,true
+conicalb_cross_0,1,convex_hull_with_null,Euclidean,conical_bounded,2000,0.1,cross_scenario,5,true
+conicalb_per_0,1,convex_hull_with_null,Euclidean,conical_bounded,2000,0.1,per_scenario,5,true
