@@ -18,6 +18,7 @@ import TOML
 import DBInterface
 using DataFrames
 using Plots
+using Revise
 
 # helper functions
 @info "Including helper functions"
@@ -57,7 +58,7 @@ case_studies_info = CSV.read(
 )
 
 solvers = [:Gurobi] #[:HiGHS, :Gurobi]
-representative_periods = [2, 4, 6]
+representative_periods = [6]
 
 enable_names = true
 direct_model = false
@@ -220,6 +221,27 @@ function main()
                         weight_fitting_kwargs
                     )
                 end
+            elseif stochastic_method == :per_and_cross_scenario # new method
+                # for now without adding possibility of artificial period - maybe add later 
+                weight_fitting_kwargs[:add_cross] = true
+                layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
+                TC.cluster!(
+                    connection,
+                    period_duration,
+                    round(Int, rp / n_scenarios);
+                    method=method,
+                    distance=distance,
+                    weight_type=weight_type,
+                    layout=layout,
+                    weight_fitting_kwargs
+                )
+
+
+
+
+
+
+
             else
                 error("Unknown stochastic method: $stochastic_method")
             end
