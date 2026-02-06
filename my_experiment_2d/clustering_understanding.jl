@@ -14,11 +14,16 @@ import Distances
 import CSV
 import Statistics
 import JuMP
+import TOML
+import DBInterface
 using DataFrames
+using Plots
 
 # helper functions
 @info "Including helper functions"
 include("utils/functions.jl")
+
+adding_initial_periods = false
 
 distance_map = Dict(
     :Euclidean => Distances.Euclidean(),
@@ -29,8 +34,10 @@ distance_map = Dict(
 )
 
 # Read and transform user input files to Tulipa input files
-input_data_path = "input_data/"
-
+config = TOML.parsefile("config.toml")
+input_data_path = config["simulation"]["input_data"]
+use_ratio = config["normalization"]["use_ratio"]
+profiles_type = config["simulation"]["profiles_type"]
 
 case_studies_info = CSV.read(
     "case-studies-info.csv",
@@ -88,7 +95,6 @@ function main()
 
             connection = DuckDB.DBInterface.connect(DuckDB.DB)
             TIO.read_csv_folder(connection, input_data_path)
-
             # transform the profiles data from wide to long
             TC.transform_wide_to_long!(
                 connection,
@@ -97,30 +103,123 @@ function main()
                 exclude_columns=["scenario", "year", "timestep"],
             )
 
+            if adding_initial_periods
+
+                DuckDB.query(
+                    connection,
+                    "
+    CREATE TABLE init_rps AS
+    SELECT *
+    FROM profiles_wide_$profiles_type
+    WHERE timestep = 2
+    AND (scenario = 0 OR scenario = 1);
+    "
+                )
+                DuckDB.query(
+                    connection,
+                    "
+    ALTER TABLE init_rps
+    ADD COLUMN period INTEGER DEFAULT 1;
+    "
+                )
+                DuckDB.query(
+                    connection,
+                    "
+
+    UPDATE init_rps
+    SET timestep = 1;
+    "
+                )
+            end
+
+
             if stochastic_method == :per_scenario
                 layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
-                time_to_cluster = @elapsed TC.cluster!(
-                    connection,
-                    period_duration,
-                    round(Int, rp / n_scenarios);
-                    method=method,
-                    distance=distance,
-                    weight_type=weight_type,
-                    layout=layout,
-                    weight_fitting_kwargs
-                )
+                if adding_initial_periods
+                    TC.transform_wide_to_long!(
+                        connection,
+                        "init_rps",
+                        "initial_representatives";
+                        exclude_columns=["scenario", "year", "timestep", "period"],
+                    )
+                    initial_representatives_df = TIO.get_table(connection, "initial_representatives")
+                    @show names(initial_representatives_df)
+                    initial_representatives_df = initial_representatives_df[:,
+                        [:timestep, :year, :scenario, :period, :profile_name, :value]
+                    ] # otherwise it throws an error (I am only reordering the columns)
+                    TC.cluster!(
+                        connection,
+                        period_duration,
+                        round(Int, rp / n_scenarios);
+                        method=method,
+                        distance=distance,
+                        initial_representatives=initial_representatives_df,
+                        weight_type=weight_type,
+                        layout=layout,
+                        weight_fitting_kwargs
+                    )
+                else
+                    TC.cluster!(
+                        connection,
+                        period_duration,
+                        round(Int, rp / n_scenarios);
+                        method=method,
+                        distance=distance,
+                        weight_type=weight_type,
+                        layout=layout,
+                        weight_fitting_kwargs
+                    )
+                end
+
+
             elseif stochastic_method == :cross_scenario
                 layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year], cols_to_crossby=[:scenario])
-                time_to_cluster = @elapsed TC.cluster!(
-                    connection,
-                    period_duration,
-                    rp;
-                    method=method,
-                    distance=distance,
-                    weight_type=weight_type,
-                    layout=layout,
-                    weight_fitting_kwargs
-                )
+                if adding_initial_periods
+                    DuckDB.query(
+                        connection,
+                        "
+        UPDATE init_rps
+        SET period = 2
+        WHERE scenario = 1
+        "
+                    )
+                    TC.transform_wide_to_long!(
+                        connection,
+                        "init_rps",
+                        "initial_representatives";
+                        exclude_columns=["scenario", "year", "timestep", "period"],
+                    )
+                    initial_representatives_df = TIO.get_table(connection, "initial_representatives")
+                    @show names(initial_representatives_df)
+                    initial_representatives_df = initial_representatives_df[:,
+                        [:timestep, :year, :scenario, :period, :profile_name, :value]
+                    ] # otherwise it throws an error (I am only reordering the columns)
+
+                    #select!(initial_representatives_df, Not(:scenario))
+                    TC.cluster!(
+                        connection,
+                        period_duration,
+                        rp;
+                        method=method,
+                        distance=distance,
+                        initial_representatives=initial_representatives_df,
+                        weight_type=weight_type,
+                        layout=layout,
+                        weight_fitting_kwargs
+                    )
+                else
+
+                    TC.cluster!(
+                        connection,
+                        period_duration,
+                        rp;
+                        method=method,
+                        distance=distance,
+                        weight_type=weight_type,
+                        layout=layout,
+                        weight_fitting_kwargs
+                    )
+                end
             else
                 error("Unknown stochastic method: $stochastic_method")
             end

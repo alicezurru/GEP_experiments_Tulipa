@@ -1,8 +1,8 @@
 # to give information about the simulations that we are running
 
 [simulation]
-input_data = "base-input-data/example-tulipa-single-year/"
-# possibilities: "base-input-data/example-tulipa-single-year/", "base-input-data/simple-case-2-scenarios/equal/", "base-input-data/simple-case-2-scenarios/modified/"
+input_data = "input_data/"
+profiles_type = 0
 
 [normalization]
-use_ratio = true
+use_ratio = false

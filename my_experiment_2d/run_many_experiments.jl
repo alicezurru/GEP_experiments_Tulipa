@@ -3,7 +3,7 @@ cd(@__DIR__)
 using Pkg: Pkg
 Pkg.activate(".")
 
-# when you run this make sure that in case-studies-info they all have the same profiles_type, the one that is also defined here
+# when you run this make sure that in case-studies-info they all have the same profiles_type, the one that is also defined in config.toml
 
 # Load the required packages
 import TulipaEnergyModel as TEM
@@ -16,6 +16,7 @@ import Distances
 import CSV
 import Statistics
 import JuMP
+import TOML
 using DataFrames
 
 # helper functions
@@ -31,8 +32,10 @@ distance_map = Dict(
 )
 
 # Read and transform user input files to Tulipa input files
-input_data_path = "input_data/"
-profiles_type = 5
+config = TOML.parsefile("config.toml")
+input_data_path = config["simulation"]["input_data"]
+use_ratio = config["normalization"]["use_ratio"]
+profiles_type = config["simulation"]["profiles_type"]
 
 
 case_studies_info = CSV.read(
