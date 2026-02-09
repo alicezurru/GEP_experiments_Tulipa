@@ -17,6 +17,7 @@ import CSV
 import Statistics
 import JuMP
 import TOML
+using Revise
 using DataFrames
 
 # helper functions
@@ -57,7 +58,6 @@ case_studies_info = CSV.read(
 
 solvers = [:Gurobi] #[:HiGHS, :Gurobi]
 representative_periods = [2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 24, 28, 34, 40]
-
 enable_names = true
 direct_model = false
 results_df = DataFrame(;
@@ -230,6 +230,25 @@ function main()
                     layout=layout,
                     weight_fitting_kwargs
                 )
+            elseif stochastic_method == :per_and_cross_scenario # new method
+                clustering_kwargs = Dict(
+                    :add_cross => true,
+                    :n_scenarios => n_scenarios
+                )
+                layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
+
+                time_to_cluster = @elapsed TC.cluster!(
+                    connection,
+                    period_duration,
+                    round(Int, rp / n_scenarios);
+                    method=method,
+                    distance=distance,
+                    weight_type=weight_type,
+                    layout=layout,
+                    clustering_kwargs,
+                    weight_fitting_kwargs
+                )
+
             else
                 error("Unknown stochastic method: $stochastic_method")
             end

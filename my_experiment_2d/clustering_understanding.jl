@@ -58,7 +58,7 @@ case_studies_info = CSV.read(
 )
 
 solvers = [:Gurobi] #[:HiGHS, :Gurobi]
-representative_periods = [6]
+representative_periods = [2, 4, 6]
 
 enable_names = true
 direct_model = false
@@ -96,6 +96,7 @@ function main()
 
             connection = DuckDB.DBInterface.connect(DuckDB.DB)
             TIO.read_csv_folder(connection, input_data_path)
+
             # transform the profiles data from wide to long
             TC.transform_wide_to_long!(
                 connection,
@@ -223,8 +224,12 @@ function main()
                 end
             elseif stochastic_method == :per_and_cross_scenario # new method
                 # for now without adding possibility of artificial period - maybe add later 
-                weight_fitting_kwargs[:add_cross] = true
+                clustering_kwargs = Dict(
+                    :add_cross => true,
+                    :n_scenarios => n_scenarios
+                )
                 layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
+
                 TC.cluster!(
                     connection,
                     period_duration,
@@ -233,14 +238,9 @@ function main()
                     distance=distance,
                     weight_type=weight_type,
                     layout=layout,
+                    clustering_kwargs,
                     weight_fitting_kwargs
                 )
-
-
-
-
-
-
 
             else
                 error("Unknown stochastic method: $stochastic_method")
@@ -248,10 +248,15 @@ function main()
 
             df_profiles_rp = TIO.get_table(connection, "profiles_rep_periods")
             df_rp_mapping = TIO.get_table(connection, "rep_periods_mapping")
+            df_rep_periods_data = TIO.get_table(connection, "rep_periods_data")
+            df_timeframe_data = TIO.get_table(connection, "timeframe_data")
             output_folder = joinpath(@__DIR__, "case_$profiles_type", case_name)
             mkpath(output_folder)
             CSV.write(joinpath(output_folder, "profiles_rep_periods"), df_profiles_rp)
             CSV.write(joinpath(output_folder, "rep_periods_mapping"), df_rp_mapping)
+            CSV.write(joinpath(output_folder, "rep_periods_data"), df_rep_periods_data)
+            CSV.write(joinpath(output_folder, "timeframe_data"), df_timeframe_data)
+
 
             df_profiles = CSV.read("input_data/profiles-wide_$profiles_type.csv", DataFrame)
             red_df = filter(row -> row.scenario == 0, df_profiles)

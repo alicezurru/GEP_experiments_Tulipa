@@ -99,7 +99,6 @@ function cluster!(
         layout,
         initial_representatives,
     )
-    print("we are here")
 
     if input_database_schema != ""
         input_profile_table_name = "$input_database_schema.$input_profile_table_name"
@@ -118,39 +117,111 @@ function cluster!(
     grouped_profiles_data, metadata_per_group =
         _update_period_numbers_using_crossby_cols!(grouped_profiles_data, layout)
 
-    results_per_group = Dict(
-        group_key => find_representative_periods(
-            group,
-            num_rps;
-            drop_incomplete_last_period,
-            method,
-            distance,
-            initial_representatives = _get_initial_representatives_for_group(
-                initial_representatives,
-                group_key,
-            ),
-            layout,
-            clustering_kwargs...,
-        ) for (group_key, group) in pairs(grouped_profiles_data)
-    )
-    for clustering_result in values(results_per_group)
-        fit_rep_period_weights!(
-            clustering_result;
-            weight_type,
-            tol,
-            weight_fitting_kwargs...,
+    if !haskey(clustering_kwargs, :add_cross)
+        results_per_group = Dict(
+            group_key => find_representative_periods(
+                group,
+                num_rps;
+                drop_incomplete_last_period,
+                method,
+                distance,
+                initial_representatives = _get_initial_representatives_for_group(
+                    initial_representatives,
+                    group_key,
+                ),
+                layout,
+                clustering_kwargs...,
+            ) for (group_key, group) in pairs(grouped_profiles_data)
         )
-    end
-    write_clustering_result_to_tables(
-        connection,
-        results_per_group,
-        metadata_per_group,
-        num_rps;
-        database_schema,
-        layout,
-    )
 
-    return results_per_group
+        for clustering_result in values(results_per_group)
+            fit_rep_period_weights!(
+                clustering_result;
+                weight_type,
+                tol,
+                weight_fitting_kwargs...,
+            )
+        end
+
+        write_clustering_result_to_tables(
+            connection,
+            results_per_group,
+            metadata_per_group,
+            num_rps;
+            database_schema,
+            layout,
+        )
+
+        return results_per_group
+    else # for now this only works if we have year and scenario only
+        grouped_profiles_data_year = groupby(profiles, [:year])
+
+        grouped_profiles_data_year, metadata_per_year =
+            _update_period_numbers_using_crossby_cols!(grouped_profiles_data_year, layout)
+
+        results_per_group = Dict{
+            DataFrames.GroupKey{GroupedDataFrame{DataFrame}},
+            TulipaClustering.ClusteringResult,
+        }()
+
+        for (group_key, group) in pairs(grouped_profiles_data)
+            init_reps =
+                _get_initial_representatives_for_group(initial_representatives, group_key)
+
+            cl_result = find_representative_periods(
+                group,
+                num_rps;
+                drop_incomplete_last_period,
+                method,
+                distance,
+                initial_representatives = init_reps,
+                layout,
+                clustering_kwargs...,
+            )
+            results_per_group[group_key] = cl_result
+        end
+
+        results_per_year = Dict{
+            DataFrames.GroupKey{GroupedDataFrame{DataFrame}},
+            TulipaClustering.ClusteringResult,
+        }() # now let us put together for every year so that we can give these results to fit_rep_period_weights
+        for (year_key, group) in pairs(grouped_profiles_data_year)
+            scenario_results = Vector{TulipaClustering.ClusteringResult}()
+            for (k, v) in results_per_group
+                if k.year == year_key[1]
+                    push!(scenario_results, v)
+                end
+            end
+            results_per_year[year_key] =
+                combine_clustering_results(scenario_results, num_rps)
+        end
+        for clustering_result in values(results_per_year)
+            fit_rep_period_weights!(
+                clustering_result;
+                weight_type,
+                tol,
+                weight_fitting_kwargs...,
+            )
+        end
+
+        layout =
+            ProfilesTableLayout(; cols_to_groupby = [:year], cols_to_crossby = [:scenario])
+        # we need cross_values_list from metadata_cross
+        grouped_profiles_data_cross = groupby(profiles, layout.cols_to_groupby)
+        grouped_profiles_data_cross, metadata_cross =
+            _update_period_numbers_using_crossby_cols!(grouped_profiles_data_cross, layout)
+
+        write_clustering_result_to_tables(
+            connection,
+            results_per_year,
+            metadata_cross,
+            num_rps * clustering_kwargs[:n_scenarios];
+            database_schema,
+            layout,
+        )
+
+        return results_per_group
+    end
 end
 
 """
@@ -352,4 +423,122 @@ function _update_period_numbers_using_crossby_cols!(
     end
 
     return grouped_profiles_data, metadata_per_group
+end
+
+"""
+    combine_clustering_results(v) added by me
+
+Combine together clustering results of more scenarios of one year.
+
+# Arguments
+- `v`: Vector{TulipaClustering.ClusteringResult} with clustering results for many scenarios
+- `n_rp`: Int number of representative periods for each scenario
+
+# Returns
+- `TulipaClustering.ClusteringResult`: Modified ClusteringResult that combines for every year all scenarios together
+
+"""
+function combine_clustering_results(v::Vector{TulipaClustering.ClusteringResult}, n_rp::Int)
+    new_profiles = combine_scenario_profiles(v, n_rp)
+    new_weight_matrix = combine_scenario_weight_matrices(v, n_rp)
+    new_clustering_matrix = combine_matrices([r.clustering_matrix for r in v])
+    new_rp_matrix = combine_matrices([r.rp_matrix for r in v])
+    new_key_columns = v[1].auxiliary_data.key_columns # SEE IF I NEED TO REMOVE SCENARIO
+    # if :scenario in new_key_columns
+    #     new_key_columns = filter(!=(:scenario), new_key_columns)
+    # end
+    new_auxiliary_data = AuxiliaryClusteringData(
+        new_key_columns,
+        v[1].auxiliary_data.period_duration,
+        v[1].auxiliary_data.last_period_duration,
+        v[1].auxiliary_data.n_periods * length(v),
+        v[1].auxiliary_data.medoids,
+    )
+    return ClusteringResult(
+        new_profiles,
+        new_weight_matrix,
+        new_clustering_matrix,
+        new_rp_matrix,
+        new_auxiliary_data,
+    )
+end
+
+function combine_scenario_weight_matrices(
+    results::Vector{TulipaClustering.ClusteringResult},
+    n_rp::Int,
+)
+    isempty(results) && return zeros(0, 0)
+
+    # determine matrix type from first matrix (if it is sparse, we return it sparse)
+    first_mat = first(r.weight_matrix for r in results)
+    is_sparse = first_mat isa SparseMatrixCSC
+
+    # compute dimensions
+    row_sizes = [size(r.weight_matrix, 1) for r in results]
+    total_rows = sum(row_sizes)
+    total_cols = n_rp * length(results)
+
+    combined = if is_sparse
+        spzeros(Float64, total_rows, total_cols)
+    else
+        zeros(Float64, total_rows, total_cols)
+    end
+
+    # fill block by block
+    row_offset = 0
+    for (idx, result) in enumerate(results)
+        W = result.weight_matrix
+
+        n_rows = size(W, 1)
+        col_offset = _rep_period_offset(n_rp, idx)
+
+        combined[
+            (row_offset + 1):(row_offset + n_rows),
+            (col_offset + 1):(col_offset + size(W, 2)),
+        ] .= W
+
+        row_offset += n_rows
+    end
+
+    return combined
+end
+
+function combine_scenario_profiles(
+    results::Vector{TulipaClustering.ClusteringResult},
+    n_rp::Int,
+)
+    profile_dfs = DataFrame[]
+
+    for (idx, result) in enumerate(results)
+        df = result.profiles === nothing ? DataFrame() : copy(result.profiles)
+
+        if !isempty(df)
+            # if "scenario" in names(df)
+            #     select!(df, Not(:scenario))
+            # end
+
+            df.rep_period .+= _rep_period_offset(n_rp, idx)
+        end
+
+        push!(profile_dfs, df)
+    end
+
+    return isempty(profile_dfs) ? DataFrame() : vcat(profile_dfs...; cols = :union)
+end
+
+function combine_matrices(matrices::Vector{Matrix{Float64}})
+    # compute total rows
+    n_rows = size(matrices[1], 1)
+    n_cols = size(matrices[1], 2)  # assume all matrices have same columns and rows
+
+    combined = zeros(Float64, n_rows, n_cols * length(matrices))
+
+    # fill block by block
+    col_offset = 0
+    for M in matrices
+        combined[:, (col_offset + 1):(col_offset + n_cols)] .= M
+        col_offset += n_cols
+    end
+
+    return combined
 end
