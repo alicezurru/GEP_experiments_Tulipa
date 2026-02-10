@@ -86,6 +86,7 @@ function find_representative_periods(
     distance::SemiMetric = SqEuclidean(),
     initial_representatives::AbstractDataFrame = DataFrame(),
     layout::ProfilesTableLayout = ProfilesTableLayout(),
+    rp_matrix_previous::Matrix{Float64} = Matrix{Float64}(undef, 0, 0),
     kwargs...,
 )
     # 1. Check that the number of RPs makes sense. The first check can be done immediately,
@@ -177,7 +178,8 @@ function find_representative_periods(
         method,
         aux,
         n_complete_periods,
-        distance;
+        distance,
+        rp_matrix_previous;
         kwargs...,
     )
 
@@ -263,7 +265,8 @@ function _compute_representatives_from_matrix(
     method,
     aux,
     n_complete_periods,
-    distance;
+    distance,
+    rp_matrix_previous;
     kwargs...,
 )
     if n_rp == 0 # If due to the additional representatives we have no clustering, create an empty placeholder
@@ -298,6 +301,8 @@ function _compute_representatives_from_matrix(
             initial_indices = initial_indices,
             n_points = n_rp,
             distance,
+            rp_matrix_previous,
+            kwargs,
         )
 
         # Reinterpret the results
@@ -333,6 +338,8 @@ function _compute_representatives_from_matrix(
             n_points = n_rp + 1,
             distance,
             initial_indices = collect(1:(i_rp + 1)),
+            rp_matrix_previous,
+            kwargs,
         )
 
         # Remove null from the beginning and shift all indices by one
@@ -375,6 +382,8 @@ function _compute_representatives_from_matrix(
             distance,
             mean_vector = normal_vector,
             initial_indices = initial_indices,
+            rp_matrix_previous,
+            kwargs,
         )
 
         # Reinterpret the results

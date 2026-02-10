@@ -233,7 +233,8 @@ function main()
             elseif stochastic_method == :per_and_cross_scenario # new method
                 clustering_kwargs = Dict(
                     :add_cross => true,
-                    :n_scenarios => n_scenarios
+                    :n_scenarios => n_scenarios,
+                    :tol_skip => 0.10
                 )
                 layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
 

@@ -164,20 +164,40 @@ function cluster!(
             TulipaClustering.ClusteringResult,
         }()
 
+        rp_matrices_by_year = Dict{Int, Matrix{Float64}}() # to keep track of the rps for every year (assuming year is an int)
+
         for (group_key, group) in pairs(grouped_profiles_data)
             init_reps =
                 _get_initial_representatives_for_group(initial_representatives, group_key)
+            year = group_key[:year] # see how to use a symbol here
+            if haskey(rp_matrices_by_year, year)
+                cl_result = find_representative_periods(
+                    group,
+                    num_rps;
+                    drop_incomplete_last_period,
+                    method,
+                    distance,
+                    initial_representatives = init_reps,
+                    layout,
+                    rp_matrix_previous = rp_matrices_by_year[year],
+                    clustering_kwargs...,
+                )
+                rp_matrices_by_year[year] =
+                    combine_matrices([rp_matrices_by_year[year], cl_result.rp_matrix])
+            else
+                cl_result = find_representative_periods(
+                    group,
+                    num_rps;
+                    drop_incomplete_last_period,
+                    method,
+                    distance,
+                    initial_representatives = init_reps,
+                    layout,
+                    clustering_kwargs...,
+                )
+                rp_matrices_by_year[year] = cl_result.rp_matrix
+            end
 
-            cl_result = find_representative_periods(
-                group,
-                num_rps;
-                drop_incomplete_last_period,
-                method,
-                distance,
-                initial_representatives = init_reps,
-                layout,
-                clustering_kwargs...,
-            )
             results_per_group[group_key] = cl_result
         end
 
@@ -529,16 +549,20 @@ end
 function combine_matrices(matrices::Vector{Matrix{Float64}})
     # compute total rows
     n_rows = size(matrices[1], 1)
-    n_cols = size(matrices[1], 2)  # assume all matrices have same columns and rows
+    # assume all matrices have same rows
+    tot_cols = 0
+    for M in matrices
+        tot_cols = tot_cols + size(M, 2)
+    end
 
-    combined = zeros(Float64, n_rows, n_cols * length(matrices))
+    combined = zeros(Float64, n_rows, tot_cols)
 
     # fill block by block
     col_offset = 0
     for M in matrices
+        n_cols = size(M, 2)
         combined[:, (col_offset + 1):(col_offset + n_cols)] .= M
         col_offset += n_cols
     end
-
     return combined
 end

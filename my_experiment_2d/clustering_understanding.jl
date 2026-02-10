@@ -226,7 +226,8 @@ function main()
                 # for now without adding possibility of artificial period - maybe add later 
                 clustering_kwargs = Dict(
                     :add_cross => true,
-                    :n_scenarios => n_scenarios
+                    :n_scenarios => n_scenarios,
+                    :tol_skip => 0.15
                 )
                 layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
 
@@ -250,7 +251,7 @@ function main()
             df_rp_mapping = TIO.get_table(connection, "rep_periods_mapping")
             df_rep_periods_data = TIO.get_table(connection, "rep_periods_data")
             df_timeframe_data = TIO.get_table(connection, "timeframe_data")
-            output_folder = joinpath(@__DIR__, "case_$profiles_type", case_name)
+            output_folder = joinpath(@__DIR__, "case_mod_$profiles_type", case_name)
             mkpath(output_folder)
             CSV.write(joinpath(output_folder, "profiles_rep_periods"), df_profiles_rp)
             CSV.write(joinpath(output_folder, "rep_periods_mapping"), df_rp_mapping)

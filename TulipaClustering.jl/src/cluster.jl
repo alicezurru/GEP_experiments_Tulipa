@@ -609,6 +609,8 @@ function greedy_convex_hull(
     distance::SemiMetric,
     initial_indices::Union{Vector{Int}, Nothing} = nothing,
     mean_vector::Union{Vector{Float64}, Nothing} = nothing,
+    rp_matrix_previous::Matrix{Float64} = Matrix{Float64}(undef, 0, 0),
+    kwargs,
 )
     # First resolve the points that are already in the hull given via `initial_indices`
     if initial_indices ≡ nothing
@@ -629,53 +631,122 @@ function greedy_convex_hull(
     distances_cache = Dict{Int, Float64}()  # store previously computed distances
     starting_index = length(initial_indices) + 1
 
-    for _ in starting_index:n_points
-        # Find the point that is the furthest away from the current hull
-        max_distance = -Inf
-        furthest_vector_index = nothing
-        hull_matrix = matrix[:, hull_indices]
-        projection_matrix = pinv(hull_matrix)
-        for column_index in axes(matrix, 2)
-            if column_index in hull_indices
-                continue
-            end
-            last_added_vector = matrix[:, last(hull_indices)]
-            target_vector = matrix[:, column_index]
+    if !haskey(kwargs, :add_cross)
+        for _ in starting_index:n_points
+            # Find the point that is the furthest away from the current hull
+            max_distance = -Inf
+            furthest_vector_index = nothing
+            hull_matrix = matrix[:, hull_indices]
+            projection_matrix = pinv(hull_matrix)
+            for column_index in axes(matrix, 2)
+                if column_index in hull_indices
+                    continue
+                end
+                last_added_vector = matrix[:, last(hull_indices)]
+                target_vector = matrix[:, column_index]
 
-            # Check whether the distance was previosly computed
-            cached_distance = get(distances_cache, column_index, Inf)
-            d_temp = distance(target_vector, last_added_vector)
-            if d_temp ≥ cached_distance
-                d_min = cached_distance
-            else
-                subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
-                x = projection_matrix * target_vector
-                x = projected_subgradient_descent!(
-                    x;
-                    subgradient,
-                    projection = project_onto_simplex,
-                )
-                projected_target = hull_matrix * x
-                d = distance(projected_target, target_vector)
-                d_min = min(d, d_temp)
-                distances_cache[column_index] = d_min
+                # Check whether the distance was previosly computed
+                cached_distance = get(distances_cache, column_index, Inf)
+                d_temp = distance(target_vector, last_added_vector)
+                if d_temp ≥ cached_distance
+                    d_min = cached_distance
+                else
+                    subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
+                    x = projection_matrix * target_vector
+                    x = projected_subgradient_descent!(
+                        x;
+                        subgradient,
+                        projection = project_onto_simplex,
+                    )
+                    projected_target = hull_matrix * x
+                    d = distance(projected_target, target_vector)
+                    d_min = min(d, d_temp)
+                    distances_cache[column_index] = d_min
+                end
+
+                if d_min > max_distance
+                    max_distance = d_min
+                    furthest_vector_index = column_index
+                end
             end
 
-            if d_min > max_distance
-                max_distance = d_min
-                furthest_vector_index = column_index
+            # If no point is found for some reason, throw an error
+            if furthest_vector_index ≡ nothing
+                throw(ArgumentError("Point not found"))
             end
+
+            # Add the found point to the hull
+            push!(hull_indices, furthest_vector_index)
         end
 
-        # If no point is found for some reason, throw an error
-        if furthest_vector_index ≡ nothing
-            throw(ArgumentError("Point not found"))
+        return hull_indices
+    else
+        count = starting_index
+        real_hull_indices = deepcopy(initial_indices)
+        tol_skip = kwargs[:tol_skip]
+        while count <= n_points
+            # Find the point that is the furthest away from the current hull
+            max_distance = -Inf
+            furthest_vector_index = nothing
+            hull_matrix = matrix[:, hull_indices]
+            projection_matrix = pinv(hull_matrix)
+            for column_index in axes(matrix, 2)
+                if column_index in hull_indices
+                    continue
+                end
+                last_added_vector = matrix[:, last(hull_indices)]
+                target_vector = matrix[:, column_index]
+
+                # Check whether the distance was previosly computed
+                cached_distance = get(distances_cache, column_index, Inf)
+                d_temp = distance(target_vector, last_added_vector)
+                if d_temp ≥ cached_distance
+                    d_min = cached_distance
+                else
+                    subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
+                    x = projection_matrix * target_vector
+                    x = projected_subgradient_descent!(
+                        x;
+                        subgradient,
+                        projection = project_onto_simplex,
+                    )
+                    projected_target = hull_matrix * x
+                    d = distance(projected_target, target_vector)
+                    d_min = min(d, d_temp)
+                    distances_cache[column_index] = d_min
+                end
+
+                if d_min > max_distance
+                    max_distance = d_min
+                    furthest_vector_index = column_index
+                end
+            end
+
+            # If no point is found for some reason, throw an error
+            if furthest_vector_index ≡ nothing
+                throw(ArgumentError("Point not found"))
+            end
+
+            is_real = true
+            for j in axes(rp_matrix_previous, 2)
+                if distance(matrix[:, furthest_vector_index], rp_matrix_previous[:, j]) <=
+                   tol_skip
+                    is_real = false
+                    break
+                end
+            end
+
+            if is_real
+                push!(real_hull_indices, furthest_vector_index)
+                count = count + 1
+            end
+
+            # Add the found point to the hull
+            push!(hull_indices, furthest_vector_index)
         end
 
-        # Add the found point to the hull
-        push!(hull_indices, furthest_vector_index)
+        return real_hull_indices
     end
-    return hull_indices
 end
 
 """
