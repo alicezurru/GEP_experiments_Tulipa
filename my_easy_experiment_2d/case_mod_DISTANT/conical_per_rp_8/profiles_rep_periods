@@ -1,0 +1,17 @@
+rep_period,timestep,year,scenario,profile_name,value
+1,1,2030,0,demand,0.5
+1,1,2030,0,wind_onshore,0.5
+2,1,2030,0,demand,0.75
+2,1,2030,0,wind_onshore,0.25
+3,1,2030,0,demand,0.7266919960332879
+3,1,2030,0,wind_onshore,0.30189850417583275
+4,1,2030,0,demand,0.525990247543148
+4,1,2030,0,wind_onshore,0.48790700979485935
+5,1,2030,1,demand,0.75
+5,1,2030,1,wind_onshore,0.75
+6,1,2030,1,demand,0.5
+6,1,2030,1,wind_onshore,1.0
+7,1,2030,1,demand,0.5387086104078666
+7,1,2030,1,wind_onshore,0.8328732300502207
+8,1,2030,1,demand,0.5
+8,1,2030,1,wind_onshore,0.75

@@ -10,7 +10,7 @@ include("constants.jl")
 include("functions.jl")
 
 mkpath("outputs/plots")
-results = "outputs/results.csv"
+results = "my_experiment_2d/outputs/results.csv"
 results_df = CSV.read(results, DataFrame)
 
 hourly_row = results_df[results_df.base_name.=="0_HourlyBenchmark", :]
@@ -23,19 +23,21 @@ results_df.rel_regret = [
     for row in eachrow(results_df)
 ]
 
-case_studies_path = "case-studies-info.csv"
+case_studies_path = "my_experiment_2d/case-studies-info.csv"
 case_studies_df = CSV.read(case_studies_path, DataFrame)
+output_folder = "my_experiment_2d/outputs/plots"
+mkpath(output_folder)
 @info "Plotting relative regret"
-plot_values_stocmethod_method(results_df, case_studies_df, "rel_regret"; savepath="outputs/plots/relative_regret.png")
+plot_values_stocmethod_method(results_df, case_studies_df, "rel_regret"; savepath="my_experiment_2d/outputs/plots/relative_regret.png")
 
 @info "Plotting time to cluster"
-plot_values_stocmethod_method(results_df, case_studies_df, "time_to_cluster"; savepath="outputs/plots/time_to_cluster.png")
+plot_values_stocmethod_method(results_df, case_studies_df, "time_to_cluster"; savepath="my_experiment_2d/outputs/plots/time_to_cluster.png")
 
 @info "Plotting time to solve"
-plot_values_stocmethod_method(results_df, case_studies_df, "time_to_solve"; savepath="outputs/plots/time_to_solve.png")
+plot_values_stocmethod_method(results_df, case_studies_df, "time_to_solve"; savepath="my_experiment_2d/outputs/plots/time_to_solve.png")
 
 @info "Plotting time to create"
-plot_values_stocmethod_method(results_df, case_studies_df, "time_to_create"; savepath="outputs/plots/time_to_create.png")
+plot_values_stocmethod_method(results_df, case_studies_df, "time_to_create"; savepath="my_experiment_2d/outputs/plots/time_to_create.png")
 
 
 # compute total time 
@@ -45,7 +47,7 @@ results_df.total_time = [
 ]
 
 @info "Plotting total time"
-plot_values_stocmethod_method(results_df, case_studies_df, "total_time"; savepath="outputs/plots/total_time.png")
+plot_values_stocmethod_method(results_df, case_studies_df, "total_time"; savepath="my_experiment_2d/outputs/plots/total_time.png")
 
 # compute number of steps with loss of load 
 hourly_lol_e = only(hourly_row.num_loss_of_load_e_demand)
@@ -65,7 +67,7 @@ results_df.num_loss_of_load_tot = [
 
 
 @info "Plotting number of steps with lol e_demand"
-plot_values_stocmethod_method(results_df, case_studies_df, "num_loss_of_load_e_demand"; savepath="outputs/plots/num_loss_of_load_e_demand.png")
+plot_values_stocmethod_method(results_df, case_studies_df, "num_loss_of_load_e_demand"; savepath="my_experiment_2d/outputs/plots/num_loss_of_load_e_demand.png")
 
 # @info "Plotting number of steps with lol h2_demand"
 # plot_values_stocmethod_method(results_df, case_studies_df, "num_loss_of_load_h2_demand"; savepath="outputs/plots/num_loss_of_load_h2_demand.png")

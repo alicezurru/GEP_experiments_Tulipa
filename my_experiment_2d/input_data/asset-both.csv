@@ -1,7 +1,0 @@
-asset,milestone_year,commission_year,initial_units,initial_storage_units,decommissionable
-ocgt,2030,2030,0.0,0.0,false
-ccgt,2030,2030,0.0,0.0,false
-wind,2030,2030,0.0,0.0,false
-ens,2030,2030,1.0,0.0,false
-e_demand,2030,2030,1.0,0.0,false
-storage,2030,2030,1.0,1.0,false

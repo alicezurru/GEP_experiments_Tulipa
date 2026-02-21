@@ -2,7 +2,7 @@
 
 [simulation]
 input_data = "input_data/"
-profiles_type = 0
+profiles_type = 5
 
 [normalization]
 use_ratio = false

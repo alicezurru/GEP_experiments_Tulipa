@@ -1,0 +1,11 @@
+# to give information about the simulations that we are running
+
+[simulation]
+input_data = "input_data/"
+profiles_type =  "DISTANT"
+# possibilities: "DISTANT", "ADJACENT", "MIXED"
+n_runs = 10
+
+[normalization]
+use_ratio = false
+

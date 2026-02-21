@@ -170,18 +170,32 @@ function find_representative_periods(
     )
 
     # 4. Do the clustering, now that the data is transformed into a matrix
-    clustering_matrix, rp_matrix, assignments = _compute_representatives_from_matrix(
-        clustering_matrix,
-        n_rp,
-        initial_representatives,
-        i_rp,
-        method,
-        aux,
-        n_complete_periods,
-        distance,
-        rp_matrix_previous;
-        kwargs...,
-    )
+    if method != :k_means && method != :k_medoids
+        clustering_matrix, rp_matrix, assignments = _compute_representatives_from_matrix(
+            clustering_matrix,
+            n_rp,
+            initial_representatives,
+            i_rp,
+            method,
+            aux,
+            n_complete_periods,
+            distance,
+            rp_matrix_previous;
+            kwargs...,
+        )
+    else
+        clustering_matrix, rp_matrix, assignments = _compute_representatives_from_matrix(
+            clustering_matrix,
+            n_rp,
+            initial_representatives,
+            i_rp,
+            method,
+            aux,
+            n_complete_periods,
+            distance,
+            rp_matrix_previous; # they do not need kwargs here
+        )
+    end
 
     # 5. Reinterpret the clustering results into a format we need
     rp_df, weight_matrix, rp_matrix = _reinterpret_clustering_results(

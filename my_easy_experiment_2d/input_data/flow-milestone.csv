@@ -1,0 +1,4 @@
+from_asset,to_asset,milestone_year,operational_cost,dc_opf,investable,reactance,commodity_price
+wind,e_demand,2030,0.002,false,false,0.3,0.0
+ccgt,e_demand,2030,0.0,false,false,0.3,0.05
+ens,e_demand,2030,0.0,false,false,0.3,300.0

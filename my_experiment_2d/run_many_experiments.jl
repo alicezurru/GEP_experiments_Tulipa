@@ -234,7 +234,7 @@ function main()
                 clustering_kwargs = Dict(
                     :add_cross => true,
                     :n_scenarios => n_scenarios,
-                    :tol_skip => 0.10
+                    :tol_skip => 0.05
                 )
                 layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
 

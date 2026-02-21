@@ -24,7 +24,7 @@ using Revise
 @info "Including helper functions"
 include("utils/functions.jl")
 
-adding_initial_periods = false
+adding_initial_periods = true
 
 distance_map = Dict(
     :Euclidean => Distances.Euclidean(),
@@ -58,7 +58,7 @@ case_studies_info = CSV.read(
 )
 
 solvers = [:Gurobi] #[:HiGHS, :Gurobi]
-representative_periods = [2, 4, 6]
+representative_periods = [4, 6]
 
 enable_names = true
 direct_model = false
@@ -227,7 +227,7 @@ function main()
                 clustering_kwargs = Dict(
                     :add_cross => true,
                     :n_scenarios => n_scenarios,
-                    :tol_skip => 0.15
+                    :tol_skip => 0.10
                 )
                 layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
 

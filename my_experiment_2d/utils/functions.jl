@@ -122,8 +122,8 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
         results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
         results_with_options = filter(row -> row.weight_type != "dirac", results_with_options)
     end
-    #results_with_options = filter(row -> row.rp >= 10, results_with_options)
-    # results_with_options = filter(row -> row.method == "convex_hull", results_with_options)
+    # results_with_options = filter(row -> row.rp >= 10, results_with_options)
+    #results_with_options = filter(row -> row.method == "convex_hull", results_with_options)
 
     for g in groupby(results_with_options, :base_name)
         name = g.base_name[1]

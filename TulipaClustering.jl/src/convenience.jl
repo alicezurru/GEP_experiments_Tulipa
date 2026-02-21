@@ -100,6 +100,16 @@ function cluster!(
         initial_representatives,
     )
 
+    if haskey(weight_fitting_kwargs, :learning_rate)
+        clustering_kwargs[:learning_rate] = weight_fitting_kwargs[:learning_rate]
+    end
+    if haskey(weight_fitting_kwargs, :tol)
+        clustering_kwargs[:tol] = weight_fitting_kwargs[:tol]
+    end
+    if haskey(weight_fitting_kwargs, :niters)
+        clustering_kwargs[:niters] = weight_fitting_kwargs[:niters]
+    end
+
     if input_database_schema != ""
         input_profile_table_name = "$input_database_schema.$input_profile_table_name"
     end
