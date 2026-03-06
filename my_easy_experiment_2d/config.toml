@@ -2,9 +2,9 @@
 
 [simulation]
 input_data = "input_data/"
-profiles_type =  "DISTANT"
-# possibilities: "DISTANT", "ADJACENT", "MIXED"
-n_runs = 10
+profiles_type =   "MIXED"
+# possibilities: "DISTANT", "ADJACENT", "MIXED", "HALFMIXED"
+n_runs = 1
 
 [normalization]
 use_ratio = false

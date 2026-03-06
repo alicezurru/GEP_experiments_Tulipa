@@ -1,0 +1,12 @@
+# to give information about the simulations that we are running
+
+[simulation]
+input_data = "input_data/nostorage/"
+# "input_data/storage/", "input_data/nostorage/"
+profiles_type = "MIXED"
+# possibilities: "DISTANT", "CLOSE", "MIXED", "HALFMIXED", "EQUAL"
+n_runs = 1
+
+[normalization]
+use_ratio = false
+

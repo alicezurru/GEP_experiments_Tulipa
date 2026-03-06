@@ -1,0 +1,3 @@
+base_name,rp,solver,time_to_cluster,time_to_read,time_to_create,time_to_solve,time_to_save,objective_value,termination_status,num_constraints,num_variables,time_to_resolve_benchmark,objective_value_resolve_benchmark,termination_status_resolve_benchmark,num_loss_of_load_e_demand,num_loss_of_load_h2_demand
+0_HourlyBenchmark,1,Gurobi,0.0,0.4018637,1.4132992,0.0066041,0.0117988,126.60401467782452,OPTIMAL,800,602,0.0,0.0,,0,0
+convex_cross,4,Gurobi,0.0761004,0.4765513,1.722599,0.0025142,0.0095408,126.7669091715442,OPTIMAL,16,14,0.0014762,126.76022769777906,OPTIMAL,0,0

@@ -55,26 +55,11 @@ plot_values_stocmethod_method(results_df, case_studies_df, "total_time"; savepat
 
 # compute number of steps with loss of load 
 hourly_lol_e = only(hourly_row.num_loss_of_load_e_demand)
-hourly_lol_h2 = only(hourly_row.num_loss_of_load_h2_demand)
 results_df.num_loss_of_load_e_demand = [
     row.num_loss_of_load_e_demand - hourly_lol_e
-    for row in eachrow(results_df)
-]
-results_df.num_loss_of_load_h2_demand = [
-    row.num_loss_of_load_h2_demand - hourly_lol_h2
-    for row in eachrow(results_df)
-]
-results_df.num_loss_of_load_tot = [
-    row.num_loss_of_load_e_demand + row.num_loss_of_load_h2_demand
     for row in eachrow(results_df)
 ]
 
 
 @info "Plotting number of steps with lol e_demand"
 plot_values_stocmethod_method(results_df, case_studies_df, "num_loss_of_load_e_demand"; savepath=joinpath(plot_path, "num_loss_of_load_e_demand"))
-
-# @info "Plotting number of steps with lol h2_demand"
-# plot_values_stocmethod_method(results_df, case_studies_df, "num_loss_of_load_h2_demand"; savepath="outputs/plots/num_loss_of_load_h2_demand.png")
-
-# @info "Plotting number of steps with lol e_demand"
-# plot_values_stocmethod_method(results_df, case_studies_df, "num_loss_of_load_tot"; savepath="outputs/plots/num_loss_of_load_tot_demand.png")

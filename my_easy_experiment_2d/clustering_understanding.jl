@@ -83,6 +83,10 @@ function main()
             :niters => niters
         )
 
+        clustering_kwargs = Dict{Symbol,Any}(
+            :heuristic_distance => false
+        )
+
         if !run_case
             continue
         end
@@ -94,6 +98,18 @@ function main()
 
             connection = DuckDB.DBInterface.connect(DuckDB.DB)
             TIO.read_csv_folder(connection, input_data_path)
+            # to use the ratio availability/demand
+            if use_ratio == true # be careful: this works now that we have only one demand location and one availability, so we divide availability by that only demand
+                DuckDB.query(
+                    connection,
+                    "
+                    UPDATE profiles_wide_$profiles_type
+                    SET
+                        wind_onshore = wind_onshore / demand
+                    "
+                )
+                df_profiles_ratio = TIO.get_table(connection, "profiles_wide_$profiles_type")
+            end
 
             # transform the profiles data from wide to long
             TC.transform_wide_to_long!(
@@ -156,6 +172,7 @@ function main()
                         initial_representatives=initial_representatives_df,
                         weight_type=weight_type,
                         layout=layout,
+                        clustering_kwargs,
                         weight_fitting_kwargs
                     )
                 else
@@ -167,10 +184,27 @@ function main()
                         distance=distance,
                         weight_type=weight_type,
                         layout=layout,
+                        clustering_kwargs,
                         weight_fitting_kwargs
                     )
                 end
-
+                if use_ratio == true
+                    df_profiles_ratio_rp = TIO.get_table(connection, "profiles_rep_periods")
+                    DuckDB.query(connection,
+                        "UPDATE profiles_rep_periods AS x
+                            SET value =
+                                CASE
+                                    WHEN x.profile_name = 'demand' THEN x.value
+                                    ELSE x.value * d.value
+                                END
+                            FROM profiles_rep_periods AS d
+                            WHERE d.timestep   = x.timestep
+                            AND d.rep_period       = x.rep_period
+                            AND d.year       = x.year
+                            AND d.scenario   = x.scenario
+                            AND d.profile_name = 'demand';
+                                ")
+                end
 
             elseif stochastic_method == :cross_scenario
                 layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year], cols_to_crossby=[:scenario])
@@ -205,6 +239,7 @@ function main()
                         initial_representatives=initial_representatives_df,
                         weight_type=weight_type,
                         layout=layout,
+                        clustering_kwargs,
                         weight_fitting_kwargs
                     )
                 else
@@ -217,15 +252,33 @@ function main()
                         distance=distance,
                         weight_type=weight_type,
                         layout=layout,
+                        clustering_kwargs,
                         weight_fitting_kwargs
                     )
+                end
+                if use_ratio == true
+                    df_profiles_ratio_rp = TIO.get_table(connection, "profiles_rep_periods")
+                    DuckDB.query(connection,
+                        "UPDATE profiles_rep_periods AS x
+                            SET value =
+                                CASE
+                                    WHEN x.profile_name = 'demand' THEN x.value
+                                    ELSE x.value * d.value
+                                END
+                            FROM profiles_rep_periods AS d
+                            WHERE d.timestep   = x.timestep
+                            AND d.rep_period       = x.rep_period
+                            AND d.year       = x.year
+                            AND d.profile_name = 'demand';
+                                ")
                 end
             elseif stochastic_method == :per_and_cross_scenario # new method
                 # for now without adding possibility of artificial period - maybe add later 
                 clustering_kwargs = Dict(
                     :add_cross => true,
                     :n_scenarios => n_scenarios,
-                    :tol_skip => 0.10
+                    :tol_skip => 0.10,
+                    :heuristic_distance => false
                 )
                 layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
 
@@ -240,23 +293,59 @@ function main()
                     clustering_kwargs,
                     weight_fitting_kwargs
                 )
+                if use_ratio == true
+                    df_profiles_ratio_rp = TIO.get_table(connection, "profiles_rep_periods")
+                    DuckDB.query(connection,
+                        "UPDATE profiles_rep_periods AS x
+                            SET value =
+                                CASE
+                                    WHEN x.profile_name = 'demand' THEN x.value
+                                    ELSE x.value * d.value
+                                END
+                            FROM profiles_rep_periods AS d
+                            WHERE d.timestep   = x.timestep
+                            AND d.rep_period       = x.rep_period
+                            AND d.year       = x.year
+                            AND d.scenario   = x.scenario
+                            AND d.profile_name = 'demand';
+                                ")
+                end
 
             else
                 error("Unknown stochastic method: $stochastic_method")
+            end
+            if use_ratio == true
+                DuckDB.query(connection,
+                    "UPDATE profiles AS x
+                        SET value =
+                            CASE
+                                WHEN x.profile_name = 'demand' THEN x.value
+                                ELSE x.value * d.value
+                            END
+                        FROM profiles AS d
+                        WHERE d.timestep   = x.timestep
+                        AND d.year       = x.year
+                        AND d.scenario   = x.scenario
+                        AND d.profile_name = 'demand';
+                            ")
             end
 
             df_profiles_rp = TIO.get_table(connection, "profiles_rep_periods")
             df_rp_mapping = TIO.get_table(connection, "rep_periods_mapping")
             df_rep_periods_data = TIO.get_table(connection, "rep_periods_data")
             df_timeframe_data = TIO.get_table(connection, "timeframe_data")
-            output_folder = joinpath(@__DIR__, "case_$profiles_type", case_name)
+            if use_ratio == true
+                output_folder = joinpath(@__DIR__, "case_mod_ratio_$profiles_type", case_name)
+            else
+                output_folder = joinpath(@__DIR__, "case_mod_$profiles_type", case_name)
+            end
             mkpath(output_folder)
             CSV.write(joinpath(output_folder, "profiles_rep_periods"), df_profiles_rp)
             CSV.write(joinpath(output_folder, "rep_periods_mapping"), df_rp_mapping)
             CSV.write(joinpath(output_folder, "rep_periods_data"), df_rep_periods_data)
             CSV.write(joinpath(output_folder, "timeframe_data"), df_timeframe_data)
 
-
+            # plots not using ratio
             df_profiles = CSV.read("input_data/profiles-wide_$profiles_type.csv", DataFrame)
             red_df = filter(row -> row.scenario == 0, df_profiles)
             blue_df = filter(row -> row.scenario == 1, df_profiles)
@@ -293,12 +382,12 @@ function main()
                 scatter!(plt, rp_joined_red.availability, rp_joined_red.demand,
                     color=:black,
                     marker=:circle,
-                    label="Representative Periods red scenario"
+                    label="Representative Periods scenario 1"
                 )
                 scatter!(plt, rp_joined_blue.availability, rp_joined_blue.demand,
                     color=:yellow,
                     marker=:circle,
-                    label="Representative Periods blue scenario"
+                    label="Representative Periods scenario 2"
                 )
 
             else
@@ -319,7 +408,6 @@ function main()
                 plt;
                 xlabel="Wind availability",
                 ylabel="Demand",
-                title="Base periods",
                 #legend=:topright,
                 grid=true,
                 framestyle=:box,
@@ -329,6 +417,81 @@ function main()
             )
 
             savefig(plt, joinpath(output_folder, "scatter.png"))
+
+            if use_ratio == true
+                # we plot also these 
+                red_df = filter(row -> row.scenario == 0, df_profiles_ratio)
+                blue_df = filter(row -> row.scenario == 1, df_profiles_ratio)
+
+                # red
+                plt = scatter(
+                    red_df.wind_onshore, red_df.demand;
+                    color=:red,
+                    label="Scenario 1",
+                    markersize=5,
+                    markerstrokewidth=0.5,
+                )
+
+                # add blue points
+                scatter!(
+                    plt,
+                    blue_df.wind_onshore, blue_df.demand;
+                    color=:blue,
+                    label="Scenario 2",
+                    markersize=5,
+                    markerstrokewidth=0.5,
+                )
+
+
+                rp_demand = filter(row -> row.profile_name == "demand", df_profiles_ratio_rp)
+                rp_generation = filter(row -> row.profile_name != "demand", df_profiles_ratio_rp)
+                if stochastic_method == :per_scenario
+                    rp_joined = innerjoin(rp_demand, rp_generation,
+                        on=[:rep_period, :timestep, :year, :scenario],
+                        makeunique=true)
+                    rename!(rp_joined, Dict(:value => :demand, :value_1 => :availability, :profile_name_1 => :technology))
+                    rp_joined_red = filter(row -> row.scenario == 0, rp_joined)
+                    rp_joined_blue = filter(row -> row.scenario == 1, rp_joined)
+                    scatter!(plt, rp_joined_red.availability, rp_joined_red.demand,
+                        color=:black,
+                        marker=:circle,
+                        label="Representative Periods scenario 1"
+                    )
+                    scatter!(plt, rp_joined_blue.availability, rp_joined_blue.demand,
+                        color=:yellow,
+                        marker=:circle,
+                        label="Representative Periods scenario 2"
+                    )
+
+                else
+                    rp_joined = innerjoin(rp_demand, rp_generation,
+                        on=[:rep_period, :timestep, :year],
+                        makeunique=true)
+
+                    rename!(rp_joined, Dict(:value => :demand, :value_1 => :availability, :profile_name_1 => :technology))
+                    scatter!(plt, rp_joined.availability, rp_joined.demand,
+                        color=:black,
+                        marker=:circle,
+                        label="Representative Periods"
+                    )
+                end
+
+
+                plot!(
+                    plt;
+                    xlabel="Wind availability / Demand",
+                    ylabel="Demand",
+                    #legend=:topright,
+                    grid=true,
+                    framestyle=:box,
+                    ratio=1,
+                    ylims=(0.0, 1.1),
+                )
+
+                savefig(plt, joinpath(output_folder, "scatter_ratio.png"))
+
+
+            end
 
         end
     end

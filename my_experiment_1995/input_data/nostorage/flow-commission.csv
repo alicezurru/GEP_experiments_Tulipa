@@ -1,0 +1,7 @@
+from_asset,to_asset,commission_year,conversion_coefficient,capacity_coefficient,fixed_cost,investment_cost,investment_limit,producer_efficiency
+wind,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
+ccgt,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
+ocgt,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
+solar,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
+ens,e_demand,2030,1.0,1.0,0.0,0.0,,1.0
+wind_offshore,e_demand,2030,1.0,1.0,0.0,0.0,,1.0

@@ -296,6 +296,7 @@ function plot_values_quantiles_panel(
     method::AbstractString,
     include_dirac::Bool=false,
     panel_title::AbstractString="$values by rp",
+    plot_legend::Bool=false
 )
     results_with_options = outerjoin(case_studies_df, stats_df, on="base_name", makeunique=true)
     results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
@@ -313,12 +314,23 @@ function plot_values_quantiles_panel(
 
     p = plot(
         xlabel="Number of representative periods",
-        ylabel=values,
+        ylabel=get(VALUE_MAP, values) do
+            error("Unknown value: $values")
+        end,
         title=panel_title,
-        legend=:topright,
+        legend=plot_legend ? :topright : false,
+        legendfont=font(10),
         xticks=(rp_vals, string.(rp_vals)),
-        size=(500, 350) # panel size before grid composition
+        size=(350, 300),
+        theme=:ggplot2,
+        framestyle=:box,
+        grid=:y,
+        minorgrid=true,
+        tick_direction=:out,
+        guidefont=font(10),
+        tickfont=font(9),
     )
+
 
     for g in groupby(results_with_options, :base_name)
         name = g.base_name[1]
@@ -334,8 +346,9 @@ function plot_values_quantiles_panel(
         end
 
         weight_type = g_sorted.weight_type[1]
-        mcolin = get(COLOR_MAP_method_weight, method * "_" * weight_type * "_" * stochastic_method) do
-            error("Unknown method and weight: $(method * "_" * weight_type * "_" * stochastic_method)")
+        together = method * "_" * weight_type * "_" * stochastic_method
+        mcolin = get(COLOR_MAP_method_weight_stmethod, together) do
+            error("Unknown method and weight: $together")
         end
 
         mean_vals = g_sorted[!, col_mean]
@@ -350,14 +363,20 @@ function plot_values_quantiles_panel(
             g_sorted.rp,
             mean_vals,
             ribbon=(lower, upper),
-            label=name,
+            label=get(LEGEND_MAP, together) do
+                error("Unknown legend value: $together")
+            end,
             lw=2,
+            linealpha=0.9,
             color=mcolin,
-            fillalpha=0.20,
+            fillalpha=0.25,
             markershape=mk,
-            markersize=6,
+            markersize=7,
             markercolor=mcolin,
+            markerstrokecolor=:black,
+            markerstrokewidth=0.5,
         )
+
     end
 
     return p
@@ -374,7 +393,7 @@ function plot_values_quantiles_grid(
     titles::Union{Nothing,NamedTuple}=nothing,
 )
 
-    keys_order = [:DISTANT, :ADJACENT, :MIXED]
+    keys_order = [:DISTANT, :ADJACENT, :HALFMIXED, :MIXED]
     available = [k for k in keys(stats_dfs)]
     cols = [k for k in keys_order if k in available]
     if isempty(cols)
@@ -386,32 +405,46 @@ function plot_values_quantiles_grid(
     # k_means 
     for col in cols
         label = string(col)
-        title_txt = isnothing(titles) ? "$label — k_means" : get(titles, col, "$label — k_means")
+        title_txt = isnothing(titles) ? label : get(titles, col, label)
         push!(panels,
             plot_values_quantiles_panel(
                 stats_dfs[col], case_studies_df, values;
                 method="k_means",
                 include_dirac=include_dirac,
-                panel_title=title_txt
+                panel_title=title_txt,
+                plot_legend=string(col) == "MIXED" ? true : false
             )
         )
     end
 
     # k_medoids 
     for col in cols
-        label = string(col)
-        title_txt = isnothing(titles) ? "$label — k_medoids" : get(titles, col, "$label — k_medoids")
+        #label = string(col)
+        #title_txt = isnothing(titles) ? "$label — k_medoids" : get(titles, col, "$label — k_medoids")
         push!(panels,
             plot_values_quantiles_panel(
                 stats_dfs[col], case_studies_df, values;
                 method="k_medoids",
                 include_dirac=include_dirac,
-                panel_title=title_txt
+                panel_title=" ",
+                plot_legend=string(col) == "MIXED" ? true : false
             )
         )
     end
 
-    grid = plot(panels..., layout=(2, length(cols)), size=size)
+
+
+    grid = plot(
+        panels...,
+        layout=(2, length(cols)),
+        size=size,
+        link=:both, # link x and y across panels
+        left_margin=5mm,
+        right_margin=12mm,
+        top_margin=5mm,
+        bottom_margin=5mm
+    )
+
 
     savefig(grid, savepath)
 

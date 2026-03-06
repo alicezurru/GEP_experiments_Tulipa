@@ -76,7 +76,6 @@ results_df = DataFrame(;
     objective_value_resolve_benchmark=Float64[],
     termination_status_resolve_benchmark=String[],
     num_loss_of_load_e_demand=Int[],
-    num_loss_of_load_h2_demand=Int[]
 )
 
 function main()
@@ -134,11 +133,9 @@ function main()
 
         var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
         flow_ens = filter(row -> row.from_asset == "ens" && row.to_asset == "e_demand", var_flow_df)
-        flow_smr_ccs = filter(row -> row.from_asset == "smr_ccs" && row.to_asset == "h2_demand", var_flow_df)
 
         # count steps with loss of load
         n_lol_ens = count(row -> row.solution > 0.0, eachrow(flow_ens))
-        n_lol_smr_cca = count(row -> row.solution > 0.0, eachrow(flow_smr_ccs))
 
         new_results_row = (
             base_name=base_name,
@@ -160,7 +157,6 @@ function main()
             objective_value_resolve_benchmark=0.0,
             termination_status_resolve_benchmark="",
             num_loss_of_load_e_demand=n_lol_ens,
-            num_loss_of_load_h2_demand=n_lol_smr_cca,
         )
         push!(results_df, new_results_row)
 
@@ -183,6 +179,9 @@ function main()
             :learning_rate => learning_rate,
             :niters => niters
         )
+        clustering_kwargs = Dict{Symbol,Any}(
+            :heuristic_distance => false
+        )
 
         if !run_case
             continue
@@ -198,6 +197,17 @@ function main()
 
                 connection = DuckDB.DBInterface.connect(DuckDB.DB)
                 TIO.read_csv_folder(connection, input_data_path)
+                # to use the ratio availability/demand
+                if use_ratio == true # be careful: this works now that we have only one demand location and one availability, so we divide availability by that only demand
+                    DuckDB.query(
+                        connection,
+                        "
+                        UPDATE profiles_wide_$profiles_type
+                        SET
+                            wind_onshore = wind_onshore / demand
+                        "
+                    )
+                end
 
                 # transform the profiles data from wide to long
                 TC.transform_wide_to_long!(
@@ -217,8 +227,25 @@ function main()
                         distance=distance,
                         weight_type=weight_type,
                         layout=layout,
+                        clustering_kwargs,
                         weight_fitting_kwargs
                     )
+                    if use_ratio == true
+                        DuckDB.query(connection,
+                            "UPDATE profiles_rep_periods AS x
+                                SET value =
+                                    CASE
+                                        WHEN x.profile_name = 'demand' THEN x.value
+                                        ELSE x.value * d.value
+                                    END
+                                FROM profiles_rep_periods AS d
+                                WHERE d.timestep   = x.timestep
+                                AND d.rep_period       = x.rep_period
+                                AND d.year       = x.year
+                                AND d.scenario   = x.scenario
+                                AND d.profile_name = 'demand';
+                                    ")
+                    end
                 elseif stochastic_method == :cross_scenario
                     layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year], cols_to_crossby=[:scenario])
                     time_to_cluster = @elapsed TC.cluster!(
@@ -229,8 +256,24 @@ function main()
                         distance=distance,
                         weight_type=weight_type,
                         layout=layout,
+                        clustering_kwargs,
                         weight_fitting_kwargs
                     )
+                    if use_ratio == true
+                        DuckDB.query(connection,
+                            "UPDATE profiles_rep_periods AS x
+                                SET value =
+                                    CASE
+                                        WHEN x.profile_name = 'demand' THEN x.value
+                                        ELSE x.value * d.value
+                                    END
+                                FROM profiles_rep_periods AS d
+                                WHERE d.timestep   = x.timestep
+                                AND d.rep_period       = x.rep_period
+                                AND d.year       = x.year
+                                AND d.profile_name = 'demand';
+                                    ")
+                    end
                 elseif stochastic_method == :per_and_cross_scenario # new method
                     clustering_kwargs = Dict(
                         :add_cross => true,
@@ -250,11 +293,41 @@ function main()
                         clustering_kwargs,
                         weight_fitting_kwargs
                     )
+                    if use_ratio == true
+                        DuckDB.query(connection,
+                            "UPDATE profiles_rep_periods AS x
+                                SET value =
+                                    CASE
+                                        WHEN x.profile_name = 'demand' THEN x.value
+                                        ELSE x.value * d.value
+                                    END
+                                FROM profiles_rep_periods AS d
+                                WHERE d.timestep   = x.timestep
+                                AND d.rep_period       = x.rep_period
+                                AND d.year       = x.year
+                                AND d.scenario   = x.scenario
+                                AND d.profile_name = 'demand';
+                                    ")
+                    end
 
                 else
                     error("Unknown stochastic method: $stochastic_method")
                 end
-
+                if use_ratio == true
+                    DuckDB.query(connection,
+                        "UPDATE profiles AS x
+                            SET value =
+                                CASE
+                                    WHEN x.profile_name = 'demand' THEN x.value
+                                    ELSE x.value * d.value
+                                END
+                            FROM profiles AS d
+                            WHERE d.timestep   = x.timestep
+                            AND d.year       = x.year
+                            AND d.scenario   = x.scenario
+                            AND d.profile_name = 'demand';
+                                ")
+                end
 
                 TEM.populate_with_defaults!(connection)
 
@@ -298,11 +371,9 @@ function main()
                     TEM.save_solution!(energy_problem_benchmark)
                     var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
                     flow_ens = filter(row -> row.from_asset == "ens" && row.to_asset == "e_demand", var_flow_df)
-                    flow_smr_ccs = filter(row -> row.from_asset == "smr_ccs" && row.to_asset == "h2_demand", var_flow_df)
 
                     # count steps with loss of load
                     n_lol_ens = count(row -> row.solution > 0.0, eachrow(flow_ens))
-                    n_lol_smr_cca = count(row -> row.solution > 0.0, eachrow(flow_smr_ccs))
                     # output_folder = joinpath(@__DIR__, "outputs", "fixed", case_name, string(solver))
                     # mkpath(output_folder)
                     # TEM.export_solution_to_csv_files(output_folder, energy_problem_benchmark)
@@ -330,7 +401,6 @@ function main()
                             energy_problem_benchmark.termination_status,
                         ),
                         num_loss_of_load_e_demand=n_lol_ens,
-                        num_loss_of_load_h2_demand=n_lol_smr_cca,
                     )
                     push!(results_df, new_results_row)
                 end

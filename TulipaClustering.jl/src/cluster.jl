@@ -626,10 +626,15 @@ function greedy_convex_hull(
         return initial_indices[1:n_points]
     end
 
+    # Check if the keyword argument `heuristic_distance` is passed
+    heuristic_distance = get(kwargs, :heuristic_distance, true)
+
     # Start filling in the remaining points
     hull_indices = initial_indices
     distances_cache = Dict{Int, Float64}()  # store previously computed distances
     starting_index = length(initial_indices) + 1
+    allowed_kwargs = (:niters, :tol, :learning_rate, :adaptive_grad)
+    filtered_kwargs = (; (k => kwargs[k] for k in allowed_kwargs if haskey(kwargs, k))...)
 
     if !haskey(kwargs, :add_cross)
         for _ in starting_index:n_points
@@ -644,13 +649,32 @@ function greedy_convex_hull(
                 end
                 last_added_vector = matrix[:, last(hull_indices)]
                 target_vector = matrix[:, column_index]
-
                 # Check whether the distance was previosly computed
                 cached_distance = get(distances_cache, column_index, Inf)
-                d_temp = distance(target_vector, last_added_vector)
-                #if d_temp ≥ cached_distance
+
+                # Check whether the cached_distance is already too small for the vector to be selected
                 if cached_distance <= max_distance
-                    d_min = cached_distance
+                    continue
+                end
+
+                if heuristic_distance
+                    d_temp = distance(target_vector, last_added_vector)
+                    if d_temp ≥ cached_distance
+                        d_min = cached_distance
+                    else
+                        subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
+                        x = projection_matrix * target_vector
+                        x = projected_subgradient_descent!(
+                            x;
+                            subgradient,
+                            projection = project_onto_simplex,
+                            filtered_kwargs...,
+                        )
+                        projected_target = hull_matrix * x
+                        d = distance(projected_target, target_vector)
+                        d_min = min(d, d_temp)
+                        distances_cache[column_index] = d_min
+                    end
                 else
                     subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
                     x = projection_matrix * target_vector
@@ -658,11 +682,11 @@ function greedy_convex_hull(
                         x;
                         subgradient,
                         projection = project_onto_simplex,
-                        kwargs...,
+                        filtered_kwargs...,
                     )
                     projected_target = hull_matrix * x
                     d = distance(projected_target, target_vector)
-                    d_min = min(d, d_temp)
+                    d_min = min(d, cached_distance)
                     distances_cache[column_index] = d_min
                 end
 
@@ -701,9 +725,28 @@ function greedy_convex_hull(
 
                 # Check whether the distance was previosly computed
                 cached_distance = get(distances_cache, column_index, Inf)
-                d_temp = distance(target_vector, last_added_vector)
-                if d_temp ≥ cached_distance && cached_distance <= max_distance
-                    d_min = cached_distance
+                # Check whether the cached_distance is already too small for the vector to be selected
+                if cached_distance <= max_distance
+                    continue
+                end
+                if heuristic_distance
+                    d_temp = distance(target_vector, last_added_vector)
+                    if d_temp ≥ cached_distance
+                        d_min = cached_distance
+                    else
+                        subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
+                        x = projection_matrix * target_vector
+                        x = projected_subgradient_descent!(
+                            x;
+                            subgradient,
+                            projection = project_onto_simplex,
+                            kwargs...,
+                        )
+                        projected_target = hull_matrix * x
+                        d = distance(projected_target, target_vector)
+                        d_min = min(d, d_temp)
+                        distances_cache[column_index] = d_min
+                    end
                 else
                     subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
                     x = projection_matrix * target_vector
@@ -715,7 +758,7 @@ function greedy_convex_hull(
                     )
                     projected_target = hull_matrix * x
                     d = distance(projected_target, target_vector)
-                    d_min = min(d, d_temp)
+                    d_min = min(d, cached_distance)
                     distances_cache[column_index] = d_min
                 end
 
