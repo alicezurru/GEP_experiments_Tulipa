@@ -11,6 +11,10 @@ using ProgressBars
 using SparseArrays
 using Statistics
 using TOML
+# using JuMP
+# using HiGHS
+# using Polyhedra
+# using QHull
 
 include("structures.jl")
 include("profiles-table-layout.jl")

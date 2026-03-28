@@ -30,7 +30,6 @@ plot_values_quantiles_grid(
     (DISTANT=stats_dist, ADJACENT=stats_adj, HALFMIXED=stats_hmix, MIXED=stats_mix),
     case_studies_df,
     "rel_regret";
-    include_dirac=false,
     savepath=joinpath(plot_path, "relative_regret.png"),
     size=(1500, 1000),
 )
@@ -38,7 +37,6 @@ plot_values_quantiles_grid(
     (DISTANT=stats_dist, ADJACENT=stats_adj, HALFMIXED=stats_hmix, MIXED=stats_mix),
     case_studies_df,
     "num_loss_of_load_e_demand";
-    include_dirac=false,
     savepath=joinpath(plot_path, "num_loss_of_load_e_demand.png"),
     size=(1500, 1000),
 )
@@ -46,7 +44,6 @@ plot_values_quantiles_grid(
     (DISTANT=stats_dist, ADJACENT=stats_adj, HALFMIXED=stats_hmix, MIXED=stats_mix),
     case_studies_df,
     "time_to_cluster";
-    include_dirac=false,
     savepath=joinpath(plot_path, "time_to_cluster.png"),
     size=(1500, 1000),
 )
@@ -54,7 +51,6 @@ plot_values_quantiles_grid(
     (DISTANT=stats_dist, ADJACENT=stats_adj, HALFMIXED=stats_hmix, MIXED=stats_mix),
     case_studies_df,
     "time_to_create";
-    include_dirac=false,
     savepath=joinpath(plot_path, "time_to_create.png"),
     size=(1500, 1000),
 )
@@ -62,7 +58,6 @@ plot_values_quantiles_grid(
     (DISTANT=stats_dist, ADJACENT=stats_adj, HALFMIXED=stats_hmix, MIXED=stats_mix),
     case_studies_df,
     "time_to_solve";
-    include_dirac=false,
     savepath=joinpath(plot_path, "time_to_solve.png"),
     size=(1500, 1000),
 )
@@ -70,7 +65,6 @@ plot_values_quantiles_grid(
     (DISTANT=stats_dist, ADJACENT=stats_adj, HALFMIXED=stats_hmix, MIXED=stats_mix),
     case_studies_df,
     "total_time";
-    include_dirac=false,
     savepath=joinpath(plot_path, "total_time.png"),
     size=(1500, 1000),
 )

@@ -27,19 +27,19 @@ const FILLER_MAP = Dict(
 const COLOR_MAP_method_weight_stmethod = Dict(
     "k_means_convex_per_scenario" => :gold,
     "k_means_convex_cross_scenario" => :orange,
-    "k_means_dirac_per_scenario" => :red,
-    "k_means_dirac_cross_scenario" => :red,
+    "k_means_dirac_per_scenario" => :gold,
+    "k_means_dirac_cross_scenario" => :orange,
     "k_medoids_convex_per_scenario" => :blue,
     "k_medoids_convex_cross_scenario" => :purple,
-    "k_medoids_dirac_per_scenario" => :red,
-    "k_medoids_dirac_cross_scenario" => :red,
+    "k_medoids_dirac_per_scenario" => :blue,
+    "k_medoids_dirac_cross_scenario" => :purple,
 )
 
 const COLOR_MAP_method_weight = Dict(
     "k_means_convex" => :gold,
-    "k_means_dirac" => :red,
+    "k_means_dirac" => :gold,
     "k_medoids_convex" => :blue,
-    "k_medoids_dirac" => :red,
+    "k_medoids_dirac" => :blue,
 )
 const LEGEND_MAP = Dict(
     "k_means_convex_per_scenario" => "K-means: per-scenario",

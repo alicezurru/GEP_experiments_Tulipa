@@ -34,10 +34,16 @@ distance_map = Dict(
 # Read and transform user input files to Tulipa input files
 config = TOML.parsefile("config.toml")
 input_data_path = config["simulation"]["input_data"]
-use_ratio = config["normalization"]["use_ratio"]
+use_ratio = config["clustering"]["use_ratio"]
+heuristic_distance = config["clustering"]["heuristic_distance"]
 profiles_type = config["simulation"]["profiles_type"]
 n_runs = config["simulation"]["n_runs"]
-
+add_worst_every_hour = config["extreme_periods"]["add_worst_every_hour"]
+add_best_every_hour = config["extreme_periods"]["add_best_every_hour"]
+add_worst_sum = config["extreme_periods"]["add_worst_sum"]
+if add_best_every_hour && !add_worst_every_hour
+    error("You can add best only when also worst is added")
+end
 
 case_studies_info = CSV.read(
     "case-studies-info.csv",
@@ -56,7 +62,7 @@ case_studies_info = CSV.read(
 )
 
 solvers = [:Gurobi] #[:HiGHS, :Gurobi]
-representative_periods = [2, 4, 8, 12, 16, 20, 30, 60, 90, 120, 180, 240, 360]
+representative_periods = [4, 8, 12, 16, 20, 30, 60, 90, 120, 180, 240, 360]
 enable_names = true
 direct_model = false
 results_df = DataFrame(;
@@ -179,9 +185,15 @@ function main()
             :learning_rate => learning_rate,
             :niters => niters
         )
-        clustering_kwargs = Dict{Symbol,Any}(
-            :heuristic_distance => false
-        )
+        if method ∉ [:k_means, :k_medoids]
+            clustering_kwargs = Dict(
+                :learning_rate => learning_rate,
+                :niters => niters,
+                :heuristic_distance => heuristic_distance,
+            )
+        else
+            clustering_kwargs = Dict{Symbol,Any}()
+        end
 
         if !run_case
             continue
@@ -197,6 +209,55 @@ function main()
 
                 connection = DuckDB.DBInterface.connect(DuckDB.DB)
                 TIO.read_csv_folder(connection, input_data_path)
+                # let us add extreme periods 
+                if add_worst_every_hour
+                    # BE CAREFUL: right now this holds only if ratio is not considered
+                    if use_ratio
+                        error("You still need to implement artificial rps with ratio!")
+                    end
+                    profiles = ["solar", "wind_onshore", "wind_offshore"]
+                    storage = DuckDB.query(
+                        connection,
+                        "
+                            SELECT EXISTS (
+                                    SELECT 1
+                                    FROM assets_profiles
+                                    WHERE asset = 'hydro_reservoir'
+                        ) AS has_hydro
+                            "
+                    ) |> DataFrame
+                    storage = storage.has_hydro[1]
+                    if storage
+                        push!(profiles, "hydro_inflow")
+                    end
+                    create_init_rps_hourly(connection, profiles_type, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    if add_best_every_hour
+                        create_init_rps_hourly_best(connection, profiles_type, period_duration, profiles)
+                    end
+                end
+
+                if add_worst_sum
+                    if use_ratio
+                        error("You still need to implement artificial rps with ratio!")
+                    end
+                    profiles = ["solar", "wind_onshore", "wind_offshore"]
+                    storage = DuckDB.query(
+                        connection,
+                        "
+                            SELECT EXISTS (
+                                    SELECT 1
+                                    FROM assets_profiles
+                                    WHERE asset = 'hydro_reservoir'
+                        ) AS has_hydro
+                            "
+                    ) |> DataFrame
+                    storage = storage.has_hydro[1]
+                    if storage
+                        push!(profiles, "hydro_inflow")
+                    end
+                    create_init_rps_daily(connection, profiles_type, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                end
+
                 # to use the ratio availability/demand
                 if use_ratio == true # be careful: this works now that we have only one demand location and one availability, so we divide availability by that only demand
                     DuckDB.query(
@@ -204,10 +265,22 @@ function main()
                         "
                         UPDATE profiles_wide_$profiles_type
                         SET
-                            wind_onshore = wind_onshore / demand
+                            solar = solar / demand,
+                            wind_offshore = wind_offshore / demand,
+                            wind_onshore = wind_onshore / demand,
                         "
-                    )
+                    ) # hydro_inflow = hydro_inflow / demand; ADD IF STORAGE
                 end
+                # DuckDB.query(
+                #     connection,
+                #     "
+                #     UPDATE profiles_wide_$profiles_type
+                #     SET
+                #         solar = 1-solar,
+                #         wind_offshore = 1-wind_offshore,
+                #         wind_onshore = 1-wind_onshore,
+                #     "
+                # )
 
                 # transform the profiles data from wide to long
                 TC.transform_wide_to_long!(
@@ -219,17 +292,36 @@ function main()
 
                 if stochastic_method == :per_scenario
                     layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
-                    time_to_cluster = @elapsed TC.cluster!(
-                        connection,
-                        period_duration,
-                        round(Int, rp / n_scenarios);
-                        method=method,
-                        distance=distance,
-                        weight_type=weight_type,
-                        layout=layout,
-                        clustering_kwargs,
-                        weight_fitting_kwargs
-                    )
+                    if add_worst_every_hour || add_worst_sum
+                        init_rps_df = TIO.get_table(connection, "init_rps")
+                        init_rps_df = init_rps_df[:,
+                            [:timestep, :year, :scenario, :period, :profile_name, :value]
+                        ] # otherwise it throws an error (I am only reordering the columns)
+                        time_to_cluster = @elapsed TC.cluster!(
+                            connection,
+                            period_duration,
+                            round(Int, rp / n_scenarios);
+                            method=method,
+                            distance=distance,
+                            initial_representatives=init_rps_df,
+                            weight_type=weight_type,
+                            layout=layout,
+                            clustering_kwargs,
+                            weight_fitting_kwargs
+                        )
+                    else
+                        time_to_cluster = @elapsed TC.cluster!(
+                            connection,
+                            period_duration,
+                            round(Int, rp / n_scenarios);
+                            method=method,
+                            distance=distance,
+                            weight_type=weight_type,
+                            layout=layout,
+                            clustering_kwargs,
+                            weight_fitting_kwargs
+                        )
+                    end
                     if use_ratio == true
                         DuckDB.query(connection,
                             "UPDATE profiles_rep_periods AS x
@@ -248,17 +340,36 @@ function main()
                     end
                 elseif stochastic_method == :cross_scenario
                     layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year], cols_to_crossby=[:scenario])
-                    time_to_cluster = @elapsed TC.cluster!(
-                        connection,
-                        period_duration,
-                        rp;
-                        method=method,
-                        distance=distance,
-                        weight_type=weight_type,
-                        layout=layout,
-                        clustering_kwargs,
-                        weight_fitting_kwargs
-                    )
+                    if add_worst_every_hour || add_worst_sum
+                        init_rps_df = TIO.get_table(connection, "init_rps")
+                        init_rps_df = init_rps_df[:,
+                            [:timestep, :year, :scenario, :period, :profile_name, :value]
+                        ] # otherwise it throws an error (I am only reordering the columns)
+                        time_to_cluster = @elapsed TC.cluster!(
+                            connection,
+                            period_duration,
+                            rp;
+                            method=method,
+                            distance=distance,
+                            initial_representatives=init_rps_df,
+                            weight_type=weight_type,
+                            layout=layout,
+                            clustering_kwargs,
+                            weight_fitting_kwargs
+                        )
+                    else
+                        time_to_cluster = @elapsed TC.cluster!(
+                            connection,
+                            period_duration,
+                            rp;
+                            method=method,
+                            distance=distance,
+                            weight_type=weight_type,
+                            layout=layout,
+                            clustering_kwargs,
+                            weight_fitting_kwargs
+                        )
+                    end
                     if use_ratio == true
                         DuckDB.query(connection,
                             "UPDATE profiles_rep_periods AS x
@@ -274,45 +385,58 @@ function main()
                                 AND d.profile_name = 'demand';
                                     ")
                     end
-                elseif stochastic_method == :per_and_cross_scenario # new method
-                    clustering_kwargs = Dict(
-                        :add_cross => true,
-                        :n_scenarios => n_scenarios,
-                        :tol_skip => 0.05
-                    )
-                    layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
+                    # elseif stochastic_method == :per_and_cross_scenario # new method
+                    #     clustering_kwargs = Dict(
+                    #         :add_cross => true,
+                    #         :n_scenarios => n_scenarios,
+                    #         :tol_skip => 0.05
+                    #     )
+                    #     layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
 
-                    time_to_cluster = @elapsed TC.cluster!(
-                        connection,
-                        period_duration,
-                        round(Int, rp / n_scenarios);
-                        method=method,
-                        distance=distance,
-                        weight_type=weight_type,
-                        layout=layout,
-                        clustering_kwargs,
-                        weight_fitting_kwargs
-                    )
-                    if use_ratio == true
-                        DuckDB.query(connection,
-                            "UPDATE profiles_rep_periods AS x
-                                SET value =
-                                    CASE
-                                        WHEN x.profile_name = 'demand' THEN x.value
-                                        ELSE x.value * d.value
-                                    END
-                                FROM profiles_rep_periods AS d
-                                WHERE d.timestep   = x.timestep
-                                AND d.rep_period       = x.rep_period
-                                AND d.year       = x.year
-                                AND d.scenario   = x.scenario
-                                AND d.profile_name = 'demand';
-                                    ")
-                    end
+                    #     time_to_cluster = @elapsed TC.cluster!(
+                    #         connection,
+                    #         period_duration,
+                    #         round(Int, rp / n_scenarios);
+                    #         method=method,
+                    #         distance=distance,
+                    #         weight_type=weight_type,
+                    #         layout=layout,
+                    #         clustering_kwargs,
+                    #         weight_fitting_kwargs
+                    #     )
+                    #     if use_ratio == true
+                    #         DuckDB.query(connection,
+                    #             "UPDATE profiles_rep_periods AS x
+                    #                 SET value =
+                    #                     CASE
+                    #                         WHEN x.profile_name = 'demand' THEN x.value
+                    #                         ELSE x.value * d.value
+                    #                     END
+                    #                 FROM profiles_rep_periods AS d
+                    #                 WHERE d.timestep   = x.timestep
+                    #                 AND d.rep_period       = x.rep_period
+                    #                 AND d.year       = x.year
+                    #                 AND d.scenario   = x.scenario
+                    #                 AND d.profile_name = 'demand';
+                    #                     ")
+                    #     end
+
 
                 else
                     error("Unknown stochastic method: $stochastic_method")
                 end
+                # DuckDB.query(
+                #     connection,
+                #     "
+                #     UPDATE profiles_rep_periods
+                #     SET
+                #         value =
+                #                 CASE
+                #                     WHEN profile_name = 'demand' THEN value
+                #                     ELSE 1-value 
+                #                 END
+                #     "
+                # )
                 if use_ratio == true
                     DuckDB.query(connection,
                         "UPDATE profiles AS x
@@ -328,6 +452,18 @@ function main()
                             AND d.profile_name = 'demand';
                                 ")
                 end
+                # DuckDB.query(
+                #     connection,
+                #     "
+                #     UPDATE profiles
+                #     SET
+                #         value =
+                #                 CASE
+                #                     WHEN profile_name = 'demand' THEN value
+                #                     ELSE 1-value 
+                #                 END
+                #     "
+                # )
 
                 df_profiles_rp = TIO.get_table(connection, "profiles_rep_periods")
                 df_rp_mapping = TIO.get_table(connection, "rep_periods_mapping")

@@ -609,8 +609,7 @@ function greedy_convex_hull(
     distance::SemiMetric,
     initial_indices::Union{Vector{Int}, Nothing} = nothing,
     mean_vector::Union{Vector{Float64}, Nothing} = nothing,
-    rp_matrix_previous::Matrix{Float64} = Matrix{Float64}(undef, 0, 0),
-    kwargs,
+    kwargs...,
 )
     # First resolve the points that are already in the hull given via `initial_indices`
     if initial_indices ≡ nothing
@@ -633,48 +632,93 @@ function greedy_convex_hull(
     hull_indices = initial_indices
     distances_cache = Dict{Int, Float64}()  # store previously computed distances
     starting_index = length(initial_indices) + 1
+
+    # unpack kwargs
     allowed_kwargs = (:niters, :tol, :learning_rate, :adaptive_grad)
     filtered_kwargs = (; (k => kwargs[k] for k in allowed_kwargs if haskey(kwargs, k))...)
 
-    if !haskey(kwargs, :add_cross)
-        for _ in starting_index:n_points
-            # Find the point that is the furthest away from the current hull
-            max_distance = -Inf
-            furthest_vector_index = nothing
-            hull_matrix = matrix[:, hull_indices]
-            projection_matrix = pinv(hull_matrix)
-            for column_index in axes(matrix, 2)
-                if column_index in hull_indices
-                    continue
-                end
-                last_added_vector = matrix[:, last(hull_indices)]
-                target_vector = matrix[:, column_index]
-                # Check whether the distance was previosly computed
-                cached_distance = get(distances_cache, column_index, Inf)
+    ### FROM HERE ###
 
-                # Check whether the cached_distance is already too small for the vector to be selected
-                if cached_distance <= max_distance
-                    continue
-                end
+    # d, N = size(matrix)
+    # println("Total points: ", N)
 
-                if heuristic_distance
-                    d_temp = distance(target_vector, last_added_vector)
-                    if d_temp ≥ cached_distance
-                        d_min = cached_distance
-                    else
-                        subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
-                        x = projection_matrix * target_vector
-                        x = projected_subgradient_descent!(
-                            x;
-                            subgradient,
-                            projection = project_onto_simplex,
-                            filtered_kwargs...,
-                        )
-                        projected_target = hull_matrix * x
-                        d = distance(projected_target, target_vector)
-                        d_min = min(d, d_temp)
-                        distances_cache[column_index] = d_min
-                    end
+    # extreme_count = 0
+
+    # for i in 1:N
+
+    #     # y = point to test
+    #     y = matrix[:, i]
+
+    #     # H = all other points
+    #     H = matrix[:, setdiff(1:N, [i])]
+    #     k = size(H, 2)
+
+    #     model = Model(HiGHS.Optimizer)
+    #     set_silent(model)
+
+    #     @variable(model, λ[1:k] >= 0)
+    #     @constraint(model, sum(λ) == 1)
+
+    #     # H * λ ≈ y constraints
+    #     for j in 1:d
+    #         @constraint(model, sum(H[j, t] * λ[t] for t in 1:k) - y[j] <= 1e-3)
+    #         @constraint(model, y[j] - sum(H[j, t] * λ[t] for t in 1:k) <= 1e-3)
+    #     end
+
+    #     optimize!(model)
+
+    #     # If model is not feasible → y cannot be represented → y is extreme
+    #     if termination_status(model) != MOI.OPTIMAL
+    #         extreme_count += 1
+    #     end
+    # end
+
+    # println("Number of extreme points: ", extreme_count)
+
+    # d, N = size(matrix)
+    # counts = zeros(Int, N)
+    # println("Total number of points: ", N)
+
+    # for _ in 1:10000000
+    #     # random direction (works without importing Random)
+    #     u = randn(d)
+    #     u ./= norm(u)
+
+    #     # compute dot products
+    #     dots = vec(matrix' * u)
+
+    #     # index of maximum
+    #     i = argmax(dots)
+    #     counts[i] += 1
+    # end
+    # num_estimated = count(counts .> 0)
+    # println("Estimated number of extreme points: ", num_estimated)
+
+    ### TO HERE ###
+
+    for _ in starting_index:n_points
+        # Find the point that is the furthest away from the current hull
+        max_distance = -Inf
+        furthest_vector_index = nothing
+        hull_matrix = matrix[:, hull_indices]
+        projection_matrix = pinv(hull_matrix)
+        for column_index in axes(matrix, 2)
+            if column_index in hull_indices
+                continue
+            end
+            last_added_vector = matrix[:, last(hull_indices)]
+            target_vector = matrix[:, column_index]
+
+            # Check whether the distance was previosly computed
+            cached_distance = get(distances_cache, column_index, Inf)
+            # Check whether the cached_distance is already too small for the vector to be selected
+            if cached_distance <= max_distance
+                continue
+            end
+            if heuristic_distance
+                d_temp = distance(target_vector, last_added_vector)
+                if d_temp ≥ cached_distance
+                    d_min = cached_distance
                 else
                     subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
                     x = projection_matrix * target_vector
@@ -686,113 +730,96 @@ function greedy_convex_hull(
                     )
                     projected_target = hull_matrix * x
                     d = distance(projected_target, target_vector)
-                    d_min = min(d, cached_distance)
+                    d_min = min(d, d_temp)
                     distances_cache[column_index] = d_min
                 end
-
-                if d_min > max_distance
-                    max_distance = d_min
-                    furthest_vector_index = column_index
-                end
+            else
+                subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
+                x = projection_matrix * target_vector
+                x = projected_subgradient_descent!(
+                    x;
+                    subgradient,
+                    projection = project_onto_simplex,
+                    filtered_kwargs...,
+                )
+                projected_target = hull_matrix * x
+                d = distance(projected_target, target_vector)
+                d_min = min(d, cached_distance)
+                distances_cache[column_index] = d_min
             end
 
-            # If no point is found for some reason, throw an error
-            if furthest_vector_index ≡ nothing
-                throw(ArgumentError("Point not found"))
+            if d_min > max_distance
+                max_distance = d_min
+                furthest_vector_index = column_index
             end
-
-            # Add the found point to the hull
-            push!(hull_indices, furthest_vector_index)
         end
 
-        return hull_indices
-    else
-        count = starting_index
-        real_hull_indices = deepcopy(initial_indices)
-        tol_skip = kwargs[:tol_skip]
-        while count <= n_points
-            # Find the point that is the furthest away from the current hull
-            max_distance = -Inf
-            furthest_vector_index = nothing
-            hull_matrix = matrix[:, hull_indices]
-            projection_matrix = pinv(hull_matrix)
-            for column_index in axes(matrix, 2)
-                if column_index in hull_indices
-                    continue
-                end
-                last_added_vector = matrix[:, last(hull_indices)]
-                target_vector = matrix[:, column_index]
-
-                # Check whether the distance was previosly computed
-                cached_distance = get(distances_cache, column_index, Inf)
-                # Check whether the cached_distance is already too small for the vector to be selected
-                if cached_distance <= max_distance
-                    continue
-                end
-                if heuristic_distance
-                    d_temp = distance(target_vector, last_added_vector)
-                    if d_temp ≥ cached_distance
-                        d_min = cached_distance
-                    else
-                        subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
-                        x = projection_matrix * target_vector
-                        x = projected_subgradient_descent!(
-                            x;
-                            subgradient,
-                            projection = project_onto_simplex,
-                            kwargs...,
-                        )
-                        projected_target = hull_matrix * x
-                        d = distance(projected_target, target_vector)
-                        d_min = min(d, d_temp)
-                        distances_cache[column_index] = d_min
-                    end
-                else
-                    subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
-                    x = projection_matrix * target_vector
-                    x = projected_subgradient_descent!(
-                        x;
-                        subgradient,
-                        projection = project_onto_simplex,
-                        kwargs...,
-                    )
-                    projected_target = hull_matrix * x
-                    d = distance(projected_target, target_vector)
-                    d_min = min(d, cached_distance)
-                    distances_cache[column_index] = d_min
-                end
-
-                if d_min > max_distance
-                    max_distance = d_min
-                    furthest_vector_index = column_index
-                end
-            end
-
-            # If no point is found for some reason, throw an error
-            if furthest_vector_index ≡ nothing
-                throw(ArgumentError("Point not found"))
-            end
-
-            is_real = true
-            for j in axes(rp_matrix_previous, 2)
-                if distance(matrix[:, furthest_vector_index], rp_matrix_previous[:, j]) <=
-                   tol_skip
-                    is_real = false
-                    break
-                end
-            end
-
-            if is_real
-                push!(real_hull_indices, furthest_vector_index)
-                count = count + 1
-            end
-
-            # Add the found point to the hull
-            push!(hull_indices, furthest_vector_index)
+        # If no point is found for some reason, throw an error
+        if furthest_vector_index ≡ nothing
+            throw(ArgumentError("Point not found"))
         end
 
-        return real_hull_indices
+        # Add the found point to the hull
+        push!(hull_indices, furthest_vector_index)
+
+        # ### from here plus t up in _ ###
+        # if t == n_points
+        #     d, N = size(matrix)
+        #     H = matrix[:, hull_indices]
+        #     k = size(H, 2)
+
+        #     count = 0
+
+        #     for i in 1:N
+        #         y = matrix[:, i]
+
+        #         model = Model(HiGHS.Optimizer)
+        #         set_silent(model)
+
+        #         JuMP.@variable(model, λ[1:k] >= 0)
+
+        #         JuMP.@constraint(model, sum(λ) == 1)
+
+        #         # enforce H * λ ≈ y
+        #         for j in 1:d
+        #             JuMP.@constraint(model, sum(H[j, t] * λ[t] for t in 1:k) - y[j] <= 1e-3)
+        #             JuMP.@constraint(model, y[j] - sum(H[j, t] * λ[t] for t in 1:k) <= 1e-3)
+        #         end
+
+        #         optimize!(model)
+
+        #         if termination_status(model) == MOI.OPTIMAL
+        #             count += 1
+        #         end
+        #     end
+        #     println("Number of total points: ", n_points)
+        #     println("Count: ", count)
+        # println("Number of total points: ", n_points)
+        # count = 0
+        # hull_matrix = matrix[:, hull_indices]
+        # projection_matrix = pinv(hull_matrix)
+        # for column_index in axes(matrix, 2)
+        #     target_vector = matrix[:, column_index]
+        #     subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
+        #     x = projection_matrix * target_vector
+        #     x = projected_subgradient_descent!(
+        #         x;
+        #         subgradient,
+        #         projection = project_onto_simplex,
+        #         filtered_kwargs...,
+        #     )
+        #     projected_target = hull_matrix * x
+        #     d = distance(projected_target, target_vector)
+        #     if d < 0.1
+        #         count = count + 1
+        #     end
+        # end
+        # println("Count: ", count)
+        #end
+        # ### to here ###
+
     end
+    return hull_indices
 end
 
 """

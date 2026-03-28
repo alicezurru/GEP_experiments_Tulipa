@@ -203,15 +203,10 @@ function plot_values_quantiles(
     stats_df::DataFrame,
     case_studies_df::DataFrame,
     values::String;
-    savepath="stats_plot.png",
-    include_dirac=false
+    savepath="stats_plot.png"
 )
     results_with_options = outerjoin(case_studies_df, stats_df, on="base_name", makeunique=true)
-
-    if !include_dirac
-        results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
-        results_with_options = filter(row -> row.weight_type != "dirac", results_with_options)
-    end
+    results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
 
 
     col_mean = Symbol(values * "_mean")
@@ -294,17 +289,12 @@ function plot_values_quantiles_panel(
     case_studies_df::DataFrame,
     values::AbstractString;
     method::AbstractString,
-    include_dirac::Bool=false,
     panel_title::AbstractString="$values by rp",
     plot_legend::Bool=false
 )
     results_with_options = outerjoin(case_studies_df, stats_df, on="base_name", makeunique=true)
     results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
     results_with_options = filter(row -> row.method == method, results_with_options)
-    if !include_dirac
-        results_with_options = filter(row -> row.weight_type != "dirac", results_with_options)
-    end
-
     rp_vals = sort(unique(results_with_options.rp))
 
     # Value columns
@@ -387,7 +377,6 @@ function plot_values_quantiles_grid(
     stats_dfs::NamedTuple,
     case_studies_df::DataFrame,
     values::AbstractString;
-    include_dirac::Bool=false,
     savepath::Union{Nothing,AbstractString}=nothing,
     size::Tuple{Int,Int}=(1500, 900),
     titles::Union{Nothing,NamedTuple}=nothing,
@@ -410,7 +399,6 @@ function plot_values_quantiles_grid(
             plot_values_quantiles_panel(
                 stats_dfs[col], case_studies_df, values;
                 method="k_means",
-                include_dirac=include_dirac,
                 panel_title=title_txt,
                 plot_legend=string(col) == "MIXED" ? true : false
             )
@@ -425,7 +413,6 @@ function plot_values_quantiles_grid(
             plot_values_quantiles_panel(
                 stats_dfs[col], case_studies_df, values;
                 method="k_medoids",
-                include_dirac=include_dirac,
                 panel_title=" ",
                 plot_legend=string(col) == "MIXED" ? true : false
             )

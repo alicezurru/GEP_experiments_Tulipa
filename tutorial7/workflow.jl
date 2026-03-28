@@ -4,7 +4,7 @@ using DuckDB
 using DataFrames
 using Plots
 using Distances
-import TulipaClustering as TC 
+import TulipaClustering
 
 using Random
 Random.seed!(123)
@@ -20,7 +20,7 @@ using TulipaIO
 TulipaIO.read_csv_folder(
     connection,
     "tutorial7/obz",
-    replace_if_exists = true,
+    replace_if_exists=true,
 )
 
 # The first 5 tables
@@ -69,13 +69,13 @@ using Distances: SqEuclidean
 
 ## Data for clustering
 clustering_params = (
-    num_rep_periods = 3,    # number of representative periods
-    period_duration = 24,   # hours of the representative period
-    method = :k_means,
-    distance = SqEuclidean(),
+    num_rep_periods=3,    # number of representative periods
+    period_duration=24,   # hours of the representative period
+    method=:k_means,
+    distance=SqEuclidean(),
     ## Data for weight fitting
-    weight_type = :convex,
-    tol = 1e-2,
+    weight_type=:convex,
+    tol=1e-2,
 )
 TulipaClustering.cluster!(
     connection,
@@ -87,10 +87,10 @@ TulipaClustering.cluster!(
     clustering_params.tol,              # Optional
 )
 
-TIO.get_table(connection,"rep_periods_data")
-TIO.get_table(connection,"rep_periods_mapping")
-TIO.get_table(connection,"profiles_rep_periods")
-TIO.get_table(connection,"timeframe_data")
+TIO.get_table(connection, "rep_periods_data")
+TIO.get_table(connection, "rep_periods_mapping")
+TIO.get_table(connection, "profiles_rep_periods")
+TIO.get_table(connection, "timeframe_data")
 
 # table asset 
 DuckDB.query(
@@ -259,15 +259,15 @@ DuckDB.query(
 # assets_profiles already exists, so we only need assets_timeframe_profiles
 DuckDB.query(
     connection,
-      "CREATE TABLE assets_timeframe_profiles AS
-      SELECT
-        asset,
-        commission_year AS year,
-        profile_type,
-        profile_name
-      FROM assets_storage_min_max_reservoir_level_profiles
-      ORDER BY asset, year, profile_name
-      ",
+    "CREATE TABLE assets_timeframe_profiles AS
+    SELECT
+      asset,
+      commission_year AS year,
+      profile_type,
+      profile_name
+    FROM assets_storage_min_max_reservoir_level_profiles
+    ORDER BY asset, year, profile_name
+    ",
 )
 
 # partitions
@@ -365,7 +365,7 @@ optimizer_parameters = Dict(
 )
 TEM.create_model!(energy_problem; optimizer_parameters)
 TEM.solve_model!(energy_problem)
-TEM.save_solution!(energy_problem; compute_duals = true) # to save the solutions and compute_duals
+TEM.save_solution!(energy_problem; compute_duals=true) # to save the solutions and compute_duals
 # example:
 nice_query("SELECT *
     FROM var_storage_level_rep_period
@@ -410,11 +410,11 @@ df = nice_query("SELECT asset, period, SoC
 plot!(
     df.period,          # x-axis
     df.SoC,             # y-axis
-    group = df.asset,   # each asset is a different plot
-    xlabel = "Period",
-    ylabel = "Storage level [p.u.]",
-    linewidth = 3,
-    dpi = 600,
+    group=df.asset,   # each asset is a different plot
+    xlabel="Period",
+    ylabel="Storage level [p.u.]",
+    linewidth=3,
+    dpi=600,
 )
 
 # now finally export solutions

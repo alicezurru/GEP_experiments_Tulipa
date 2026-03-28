@@ -2,10 +2,11 @@
 
 [simulation]
 input_data = "input_data/"
-profiles_type =   "MIXED"
+profiles_type = "ADJACENT"
 # possibilities: "DISTANT", "ADJACENT", "MIXED", "HALFMIXED"
-n_runs = 1
+n_runs = 10
 
-[normalization]
+[clustering]
 use_ratio = false
+heuristic_distance = false
 

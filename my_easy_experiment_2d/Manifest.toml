@@ -1200,9 +1200,9 @@ version = "0.11.3"
 
 [[deps.TulipaClustering]]
 deps = ["CSV", "Clustering", "DataFrames", "Distances", "DuckDB", "DuckDB_jll", "LinearAlgebra", "ProgressBars", "SparseArrays", "Statistics", "TOML", "TulipaIO"]
-path = "C:/Users/zurrua/Desktop/first_attempts_tulipa/TulipaClustering.jl"
+git-tree-sha1 = "ebc04010d6b6cf84ef51d68ad9fe09b10353e83c"
 uuid = "314fac8b-c762-4aa3-9d12-851379729163"
-version = "0.5.1"
+version = "0.5.2"
 
 [[deps.TulipaEnergyModel]]
 deps = ["CSV", "DuckDB", "DuckDB_jll", "HiGHS", "JSON", "JuMP", "LinearAlgebra", "MathOptInterface", "OrderedCollections", "ParametricOptInterface", "SparseArrays", "Statistics", "TOML", "TimerOutputs", "TulipaIO"]

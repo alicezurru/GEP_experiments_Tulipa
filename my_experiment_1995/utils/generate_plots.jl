@@ -32,7 +32,7 @@ case_studies_df = CSV.read(case_studies_path, DataFrame)
 
 mkpath(plot_path)
 @info "Plotting relative regret"
-plot_values_stocmethod_method(results_df, case_studies_df, "rel_regret"; savepath=joinpath(plot_path, "relative_regret.png"), logscale=true)
+plot_values_stocmethod_method(results_df, case_studies_df, "rel_regret"; savepath=joinpath(plot_path, "relative_regret.png"))
 
 @info "Plotting time to cluster"
 plot_values_stocmethod_method(results_df, case_studies_df, "time_to_cluster"; savepath=joinpath(plot_path, "time_to_cluster.png"))

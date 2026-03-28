@@ -26,6 +26,275 @@ function fix_variables_from_solution!(benchmark_model, reduced_model, var_symbol
     end
 end
 
+function create_init_rps_hourly(connection, profiles_type, period_duration, profiles)
+    profiles_str = join(profiles, ", ")
+    DuckDB.query(
+        connection,
+        "CREATE TABLE init_rps AS
+        WITH melted AS (
+            SELECT year,
+                   scenario,
+                   timestep,
+                   demand,
+                   profile_name,
+                   value
+            FROM profiles_wide_$profiles_type
+            UNPIVOT (
+                value FOR profile_name IN ($profiles_str)
+            )
+        ),
+
+        with_hour AS (
+            SELECT
+                year,
+                scenario,
+                timestep,
+                ((timestep-1) % $period_duration)+1 AS hour,
+                profile_name,
+                value,
+                demand
+            FROM melted
+        ),
+
+        max_demand AS (
+            SELECT
+                year,
+                scenario,
+                hour AS timestep,
+                1 AS period,
+                'demand' as profile_name,
+                MAX(demand) AS value
+            FROM with_hour
+            GROUP BY year, scenario, hour
+        ),
+
+        with_ratio AS (
+            SELECT
+                year,
+                scenario,
+                timestep,
+                hour,
+                profile_name,
+                value,
+                value / NULLIF(demand, 0) AS ratio
+            FROM with_hour
+        ),
+
+        ranked AS (
+            SELECT
+                *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY year, scenario, hour, profile_name
+                    ORDER BY ratio ASC
+                ) AS rn
+            FROM with_ratio
+        )
+
+        SELECT
+            year,
+            scenario,
+            hour AS timestep,
+            1 AS period,
+            profile_name,
+            value
+        FROM ranked
+        WHERE rn = 1
+        UNION ALL 
+        SELECT * FROM max_demand
+        ORDER BY year, scenario, profile_name, timestep;"
+    )
+end
+
+function create_init_rps_hourly_best(connection, profiles_type, period_duration, profiles)
+    profiles_str = join(profiles, ", ")
+    DuckDB.query(
+        connection,
+        "CREATE TABLE init_rps_best AS
+        WITH melted AS (
+            SELECT year,
+                   scenario,
+                   timestep,
+                   demand,
+                   profile_name,
+                   value
+            FROM profiles_wide_$profiles_type
+            UNPIVOT (
+                value FOR profile_name IN ($profiles_str)
+            )
+        ),
+
+        with_hour AS (
+            SELECT
+                year,
+                scenario,
+                timestep,
+                ((timestep-1) % $period_duration)+1 AS hour,
+                profile_name,
+                value,
+                demand
+            FROM melted
+        ),
+
+        min_demand AS (
+            SELECT
+                year,
+                scenario,
+                hour AS timestep,
+                2 AS period,
+                'demand' as profile_name,
+                MIN(demand) AS value
+            FROM with_hour
+            GROUP BY year, scenario, hour
+        ),
+
+        with_ratio AS (
+            SELECT
+                year,
+                scenario,
+                timestep,
+                hour,
+                profile_name,
+                value,
+                value / NULLIF(demand, 0) AS ratio
+            FROM with_hour
+        ),
+
+        ranked AS (
+            SELECT
+                *,
+                ROW_NUMBER() OVER (
+                    PARTITION BY year, scenario, hour, profile_name
+                    ORDER BY ratio DESC
+                ) AS rn
+            FROM with_ratio
+        )
+
+        SELECT
+            year,
+            scenario,
+            hour AS timestep,
+            2 AS period,
+            profile_name,
+            value
+        FROM ranked
+        WHERE rn = 1
+        UNION ALL 
+        SELECT * FROM min_demand
+        ORDER BY year, scenario, profile_name, timestep;"
+    )
+    DuckDB.query(connection,
+        "INSERT INTO init_rps
+        SELECT * FROM init_rps_best;")
+end
+
+function create_init_rps_daily(connection, profiles_type, period_duration, profiles)
+    profiles_str = join(profiles, ", ")
+    DuckDB.query(
+        connection,
+        "CREATE TABLE init_rps AS
+        WITH base AS (
+            SELECT
+                year,
+                scenario,
+                timestep,
+                CAST(((timestep - 1) % $period_duration) + 1 AS INTEGER) AS hour,
+                CAST(FLOOR((timestep - 1) / $period_duration) + 1 AS INTEGER) AS day,
+                demand,
+                $profiles_str
+            FROM profiles_wide_$profiles_type
+        ),
+        av_profiles AS (
+            SELECT
+                year,
+                scenario,
+                day,
+                hour,
+                profile_name,
+                value
+            FROM base
+            UNPIVOT (
+                value FOR profile_name IN ($profiles_str)
+            )
+        ),
+
+        renewable_day_ratio AS (
+            SELECT
+                p.year,
+                p.scenario,
+                p.day,
+                SUM(p.value) AS renewable_sum,
+                SUM(b.demand) AS demand_sum,
+                SUM(p.value) / NULLIF(SUM(b.demand),0) AS ratio
+            FROM av_profiles p
+            JOIN base b
+                USING (year, scenario, day, hour)
+            GROUP BY p.year, p.scenario, p.day
+        ),
+
+        worst_renewable_day AS (
+            SELECT year, scenario, day
+            FROM (
+                SELECT *,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY year, scenario
+                        ORDER BY ratio ASC
+                    ) rn
+                FROM renewable_day_ratio
+            )
+            WHERE rn = 1
+        ),
+
+        peak_demand_day AS (
+            SELECT year, scenario, day
+            FROM (
+                SELECT
+                    year,
+                    scenario,
+                    day,
+                    SUM(demand) AS total_demand,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY year, scenario
+                        ORDER BY SUM(demand) DESC
+                    ) rn
+                FROM base
+                GROUP BY year, scenario, day
+            )
+            WHERE rn = 1
+        ),
+
+        renewable_profiles AS (
+            SELECT
+                p.year,
+                p.scenario,
+                p.hour AS timestep,
+                1 AS period,
+                p.profile_name,
+                p.value
+            FROM av_profiles p
+            JOIN worst_renewable_day d
+                USING (year, scenario, day)
+        ),
+
+        demand_profile AS (
+            SELECT
+                year,
+                scenario,
+                hour AS timestep,
+                1 AS period,
+                'demand' AS profile_name,
+                demand AS value
+            FROM base
+            JOIN peak_demand_day
+                USING (year, scenario, day)
+        )
+
+        SELECT * FROM renewable_profiles
+        UNION ALL
+        SELECT * FROM demand_profile
+        ORDER BY year, scenario, profile_name, timestep;"
+    )
+end
+
 function plot_values_stocmethod_weight( #considering different options: stochastic_method, weight_type
     results_df::DataFrame,
     case_studies_df::DataFrame,
@@ -113,6 +382,10 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
     results_with_options = outerjoin(case_studies_df, results_df, on="base_name", makeunique=true)
 
     results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
+    results_with_options = filter(row -> row.rp >= 4, results_with_options)
+
+    results_with_options = filter(row -> row.method != "conical_hull", results_with_options)
+
     rp_vals = sort(unique(results_with_options.rp))
     rp_labels = string.(rp_vals)
     rp_index = Dict(rp => i for (i, rp) in enumerate(rp_vals))
@@ -135,9 +408,6 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
     if !include_dirac
         results_with_options = filter(row -> row.weight_type != "dirac", results_with_options)
     end
-    # results_with_options = filter(row -> row.rp >= 10, results_with_options)
-    #results_with_options = filter(row -> row.method == "convex_hull", results_with_options)
-
     for g in groupby(results_with_options, :base_name)
         name = g.base_name[1]
         if name == "0_HourlyBenchmark"
@@ -203,6 +473,7 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
             markershape=:rect, markersize=8, markercolor=:white,
             label="dirac weights")
     end
+    # ylims!(p, 0.0, 0.15)
 
     savefig(p, savepath)
     @info "Plot saved in: $savepath"
@@ -214,14 +485,12 @@ function plot_values_quantiles(
     case_studies_df::DataFrame,
     values::String;
     savepath="stats_plot.png",
-    include_dirac=false
+    logscale=false
 )
     results_with_options = outerjoin(case_studies_df, stats_df, on="base_name", makeunique=true)
+    results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
 
-    if !include_dirac
-        results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
-        results_with_options = filter(row -> row.weight_type != "dirac", results_with_options)
-    end
+    #results_with_options = filter(row -> row.rp >= 60, results_with_options)
 
 
     col_mean = Symbol(values * "_mean")
@@ -230,15 +499,23 @@ function plot_values_quantiles(
 
     stats_df = filter(row -> row.base_name != "0_HourlyBenchmark", stats_df)
     rp_vals = sort(unique(stats_df.rp))
+    rp_labels = string.(rp_vals)
+    rp_index = Dict(rp => i for (i, rp) in enumerate(rp_vals))
+
 
     p = plot(
-        xlabel="Representative Period",
-        ylabel=values,
-        title="$values by rp",
+        xlabel="Number of representative periods",
+        ylabel=get(VALUE_MAP, values) do
+            error("Unknown values: $values")
+        end,
+        title="",
         legend=:topright,
-        size=(900, 500),
-        xticks=(rp_vals, string.(rp_vals))
+        size=(800, 500),
+        xticks=(1:length(rp_vals), rp_labels)
     )
+    if logscale
+        yaxis!(p, :log10)
+    end
 
 
     for g in groupby(results_with_options, :base_name)
@@ -265,10 +542,11 @@ function plot_values_quantiles(
 
         lower = mean_vals .- q25_vals
         upper = q75_vals .- mean_vals
+        xidx = [rp_index[rp] for rp in g_sorted.rp]
 
         plot!(
             p,
-            g_sorted.rp,
+            xidx,
             mean_vals,
             ribbon=(lower, upper),
             label=name,
@@ -280,19 +558,7 @@ function plot_values_quantiles(
             markercolor=mcolin
         )
     end
-
-    # for (label, marker) in MARKER_MAP
-    #     short_label = replace(label, "_scenario" => "")
-    #     scatter!(p, [NaN], [NaN]; markershape=marker, color=:gray30, label=short_label)
-    # end
-
-    # for (label, color) in COLOR_MAP_method
-    #     scatter!(p, [NaN], [NaN]; markershape=:rect, color=color, label=label)
-    # end
-
-    # if include_dirac
-    #     scatter!(p, [NaN], [NaN]; markershape=:rect, color=:white, label="dirac weights")
-    # end
+    ylims!(p, 0.0, 0.15)
 
     savefig(p, savepath)
     @info "Plot saved in: $savepath"
@@ -304,18 +570,16 @@ function plot_values_quantiles_panel(
     case_studies_df::DataFrame,
     values::AbstractString;
     method::AbstractString,
-    include_dirac::Bool=false,
     panel_title::AbstractString="$values by rp",
     plot_legend::Bool=false
 )
     results_with_options = outerjoin(case_studies_df, stats_df, on="base_name", makeunique=true)
     results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
     results_with_options = filter(row -> row.method == method, results_with_options)
-    if !include_dirac
-        results_with_options = filter(row -> row.weight_type != "dirac", results_with_options)
-    end
 
     rp_vals = sort(unique(results_with_options.rp))
+    rp_labels = string.(rp_vals)
+    rp_index = Dict(rp => i for (i, rp) in enumerate(rp_vals))
 
     # Value columns
     col_mean = Symbol(values * "_mean")
@@ -330,8 +594,8 @@ function plot_values_quantiles_panel(
         title=panel_title,
         legend=plot_legend ? :topright : false,
         legendfont=font(10),
-        xticks=(rp_vals, string.(rp_vals)),
-        size=(350, 300),
+        xticks=(1:length(rp_vals), rp_labels),
+        size=(200, 100),
         theme=:ggplot2,
         framestyle=:box,
         grid=:y,
@@ -367,10 +631,11 @@ function plot_values_quantiles_panel(
 
         lower = mean_vals .- q25_vals
         upper = q75_vals .- mean_vals
+        xidx = [rp_index[rp] for rp in g_sorted.rp]
 
         plot!(
             p,
-            g_sorted.rp,
+            xidx,
             mean_vals,
             ribbon=(lower, upper),
             label=get(LEGEND_MAP, together) do
@@ -397,13 +662,12 @@ function plot_values_quantiles_grid(
     stats_dfs::NamedTuple,
     case_studies_df::DataFrame,
     values::AbstractString;
-    include_dirac::Bool=false,
     savepath::Union{Nothing,AbstractString}=nothing,
     size::Tuple{Int,Int}=(1500, 900),
     titles::Union{Nothing,NamedTuple}=nothing,
 )
 
-    keys_order = [:DISTANT, :CLOSE, :HALFMIXED, :MIXED]
+    keys_order = [:DISTANT, :HALFMIXED, :CLOSE, :MIXED]
     available = [k for k in keys(stats_dfs)]
     cols = [k for k in keys_order if k in available]
     if isempty(cols)
@@ -420,7 +684,6 @@ function plot_values_quantiles_grid(
             plot_values_quantiles_panel(
                 stats_dfs[col], case_studies_df, values;
                 method="k_means",
-                include_dirac=include_dirac,
                 panel_title=title_txt,
                 plot_legend=string(col) == "MIXED" ? true : false
             )
@@ -435,7 +698,6 @@ function plot_values_quantiles_grid(
             plot_values_quantiles_panel(
                 stats_dfs[col], case_studies_df, values;
                 method="k_medoids",
-                include_dirac=include_dirac,
                 panel_title=" ",
                 plot_legend=string(col) == "MIXED" ? true : false
             )
@@ -459,4 +721,41 @@ function plot_values_quantiles_grid(
     savefig(grid, savepath)
 
     return nothing
+end
+
+
+function plot_cost_columns(df::DataFrame, savepath::AbstractString)
+
+    # Create label column: base_name_rp
+    df.label = string.(df.base_name, "_", df.rp)
+
+
+    # Keep only relevant columns
+    labels = df.label
+    investment = df.investment_cost
+    operational = df.operational_cost + df.investment_cost - df.penalty_loss_of_load_e_demand
+    penalty = df.investment_cost + df.operational_cost
+
+    # Create stacked bar plot
+
+    data_matrix = hcat(penalty, operational, investment)
+    label_order = ["Penalty Loss" "Operational Cost" "Investment Cost"]
+
+    # Create stacked bar plot
+    b = bar(
+        labels,
+        data_matrix,
+        label=label_order,
+        legend=:topright,
+        xlabel="Scenario",
+        ylabel="Cost",
+        title="Cost Breakdown per Setting",
+        bar_position=:stack,
+        xticks=(1:length(labels), labels),
+        xrotation=45,
+        size=(800, 600)
+    )
+
+    savefig(b, savepath)
+
 end
