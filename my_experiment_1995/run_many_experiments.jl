@@ -44,6 +44,11 @@ add_worst_sum = config["extreme_periods"]["add_worst_sum"]
 if add_best_every_hour && !add_worst_every_hour
     error("You can add best only when also worst is added")
 end
+if use_ratio
+    if input_data_path == "input_data/storage/"
+        error("Ratio is implemented only with no storage right now")
+    end
+end
 
 case_studies_info = CSV.read(
     "case-studies-info.csv",
@@ -271,16 +276,6 @@ function main()
                         "
                     ) # hydro_inflow = hydro_inflow / demand; ADD IF STORAGE
                 end
-                # DuckDB.query(
-                #     connection,
-                #     "
-                #     UPDATE profiles_wide_$profiles_type
-                #     SET
-                #         solar = 1-solar,
-                #         wind_offshore = 1-wind_offshore,
-                #         wind_onshore = 1-wind_onshore,
-                #     "
-                # )
 
                 # transform the profiles data from wide to long
                 TC.transform_wide_to_long!(
@@ -425,18 +420,6 @@ function main()
                 else
                     error("Unknown stochastic method: $stochastic_method")
                 end
-                # DuckDB.query(
-                #     connection,
-                #     "
-                #     UPDATE profiles_rep_periods
-                #     SET
-                #         value =
-                #                 CASE
-                #                     WHEN profile_name = 'demand' THEN value
-                #                     ELSE 1-value 
-                #                 END
-                #     "
-                # )
                 if use_ratio == true
                     DuckDB.query(connection,
                         "UPDATE profiles AS x
@@ -452,18 +435,6 @@ function main()
                             AND d.profile_name = 'demand';
                                 ")
                 end
-                # DuckDB.query(
-                #     connection,
-                #     "
-                #     UPDATE profiles
-                #     SET
-                #         value =
-                #                 CASE
-                #                     WHEN profile_name = 'demand' THEN value
-                #                     ELSE 1-value 
-                #                 END
-                #     "
-                # )
 
                 df_profiles_rp = TIO.get_table(connection, "profiles_rep_periods")
                 df_rp_mapping = TIO.get_table(connection, "rep_periods_mapping")
@@ -471,9 +442,12 @@ function main()
                 df_timeframe_data = TIO.get_table(connection, "timeframe_data")
                 if use_ratio == true
                     output_folder = joinpath(@__DIR__, "case_mod_ratio_$profiles_type", case_name)
+                elseif input_data_path == "input_data/storage/"
+                    output_folder = joinpath(@__DIR__, "case_stor_$profiles_type", case_name)
                 else
                     output_folder = joinpath(@__DIR__, "case_mod_$profiles_type", case_name)
                 end
+
                 mkpath(output_folder)
                 CSV.write(joinpath(output_folder, "profiles_rep_periods"), df_profiles_rp)
                 CSV.write(joinpath(output_folder, "rep_periods_mapping"), df_rp_mapping)

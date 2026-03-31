@@ -3,17 +3,17 @@
 [simulation]
 input_data = "input_data/nostorage/"
 # "input_data/storage/", "input_data/nostorage/"
-profiles_type = "MIXED"
+profiles_type = "DISTANT"
 # possibilities: "DISTANT", "CLOSE", "MIXED", "HALFMIXED", "EQUAL"
-n_runs = 10
+n_runs = 1
 
 [clustering]
 use_ratio = false
 heuristic_distance = false
 
 [extreme_periods]
-add_worst_every_hour = true
-add_best_every_hour = true # this can be true only if also the previous one is true
+add_worst_every_hour = false
+add_best_every_hour = false # this can be true only if also the previous one is true
 add_worst_sum = false
 
 
