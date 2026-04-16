@@ -1253,10 +1253,10 @@ uuid = "314fac8b-c762-4aa3-9d12-851379729163"
 version = "0.5.2"
 
 [[deps.TulipaEnergyModel]]
-deps = ["CSV", "DuckDB", "HiGHS", "JSON", "JuMP", "MathOptInterface", "OrderedCollections", "ParametricOptInterface", "Statistics", "TOML", "TimerOutputs", "TulipaIO"]
-git-tree-sha1 = "59d08d921d8484bd4790704c518a874006e04b07"
+deps = ["CSV", "DuckDB", "DuckDB_jll", "HiGHS", "JSON", "JuMP", "MathOptInterface", "OrderedCollections", "ParametricOptInterface", "SparseArrays", "Statistics", "TOML", "TimerOutputs", "TulipaIO"]
+path = "C:/Users/zurrua/Desktop/first_attempts_tulipa/TulipaEnergyModel.jl"
 uuid = "5d7bd171-d18e-45a5-9111-f1f11ac5d04d"
-version = "0.21.0"
+version = "0.20.1"
 
 [[deps.TulipaIO]]
 deps = ["CSV", "DataFrames", "Dates", "DuckDB", "DuckDB_jll", "Glob", "HTTP", "JSON3", "PrettyTables", "Printf"]

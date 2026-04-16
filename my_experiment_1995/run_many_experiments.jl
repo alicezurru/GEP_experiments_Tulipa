@@ -41,12 +41,18 @@ n_runs = config["simulation"]["n_runs"]
 add_worst_every_hour = config["extreme_periods"]["add_worst_every_hour"]
 add_best_every_hour = config["extreme_periods"]["add_best_every_hour"]
 add_worst_sum = config["extreme_periods"]["add_worst_sum"]
+add_worst_sum_real = config["extreme_periods"]["add_worst_sum_real"]
 if add_best_every_hour && !add_worst_every_hour
     error("You can add best only when also worst is added")
 end
 if use_ratio
     if input_data_path == "input_data/storage/"
         error("Ratio is implemented only with no storage right now")
+    end
+end
+if add_worst_sum_real
+    if add_worst_every_hour || add_worst_sum
+        error("You cannot add them together")
     end
 end
 
@@ -263,6 +269,28 @@ function main()
                     create_init_rps_daily(connection, profiles_type, period_duration, profiles) # BE CAREFUL: tested only for 1 year
                 end
 
+                if add_worst_sum_real
+                    if use_ratio
+                        error("You still need to implement artificial rps with ratio!")
+                    end
+                    profiles = ["solar", "wind_onshore", "wind_offshore"]
+                    storage = DuckDB.query(
+                        connection,
+                        "
+                            SELECT EXISTS (
+                                    SELECT 1
+                                    FROM assets_profiles
+                                    WHERE asset = 'hydro_reservoir'
+                        ) AS has_hydro
+                            "
+                    ) |> DataFrame
+                    storage = storage.has_hydro[1]
+                    if storage
+                        push!(profiles, "hydro_inflow")
+                    end
+                    create_init_rps_daily_real(connection, profiles_type, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                end
+
                 # to use the ratio availability/demand
                 if use_ratio == true # be careful: this works now that we have only one demand location and one availability, so we divide availability by that only demand
                     DuckDB.query(
@@ -287,7 +315,7 @@ function main()
 
                 if stochastic_method == :per_scenario
                     layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
-                    if add_worst_every_hour || add_worst_sum
+                    if add_worst_every_hour || add_worst_sum || add_worst_sum_real
                         init_rps_df = TIO.get_table(connection, "init_rps")
                         init_rps_df = init_rps_df[:,
                             [:timestep, :year, :scenario, :period, :profile_name, :value]
@@ -335,7 +363,7 @@ function main()
                     end
                 elseif stochastic_method == :cross_scenario
                     layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year], cols_to_crossby=[:scenario])
-                    if add_worst_every_hour || add_worst_sum
+                    if add_worst_every_hour || add_worst_sum || add_worst_sum_real
                         init_rps_df = TIO.get_table(connection, "init_rps")
                         init_rps_df = init_rps_df[:,
                             [:timestep, :year, :scenario, :period, :profile_name, :value]

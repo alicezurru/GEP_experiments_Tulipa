@@ -295,6 +295,98 @@ function create_init_rps_daily(connection, profiles_type, period_duration, profi
     )
 end
 
+
+function create_init_rps_daily_real(connection, profiles_type, period_duration, profiles) # this is not artificial period
+    profiles_str = join(profiles, ", ")
+    DuckDB.query(
+        connection,
+        "CREATE TABLE init_rps AS
+        WITH base AS (
+            SELECT
+                year,
+                scenario,
+                timestep,
+                CAST(((timestep - 1) % $period_duration) + 1 AS INTEGER) AS hour,
+                CAST(FLOOR((timestep - 1) / $period_duration) + 1 AS INTEGER) AS day,
+                demand,
+                $profiles_str
+            FROM profiles_wide_$profiles_type
+        ),
+        av_profiles AS (
+            SELECT
+                year,
+                scenario,
+                day,
+                hour,
+                profile_name,
+                value
+            FROM base
+            UNPIVOT (
+                value FOR profile_name IN ($profiles_str)
+            )
+        ),
+
+        renewable_day_ratio AS (
+            SELECT
+                p.year,
+                p.scenario,
+                p.day,
+                SUM(p.value) AS renewable_sum,
+                SUM(b.demand) AS demand_sum,
+                SUM(p.value) / NULLIF(SUM(b.demand),0) AS ratio
+            FROM av_profiles p
+            JOIN base b
+                USING (year, scenario, day, hour)
+            GROUP BY p.year, p.scenario, p.day
+        ),
+
+        worst_day AS (
+            SELECT year, scenario, day
+            FROM (
+                SELECT *,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY year, scenario
+                        ORDER BY ratio ASC
+                    ) rn
+                FROM renewable_day_ratio
+            )
+            WHERE rn = 1
+        ),
+
+        renewable_profiles AS (
+            SELECT
+                p.year,
+                p.scenario,
+                p.hour AS timestep,
+                1 AS period,
+                p.profile_name,
+                p.value
+            FROM av_profiles p
+            JOIN worst_day d
+                USING (year, scenario, day)
+        ),
+
+        demand_profile AS (
+            SELECT
+                year,
+                scenario,
+                hour AS timestep,
+                1 AS period,
+                'demand' AS profile_name,
+                demand AS value
+            FROM base
+            JOIN worst_day
+                USING (year, scenario, day)
+        )
+
+        SELECT * FROM renewable_profiles
+        UNION ALL
+        SELECT * FROM demand_profile
+        ORDER BY year, scenario, profile_name, timestep;"
+    )
+end
+
+
 function plot_values_stocmethod_weight( #considering different options: stochastic_method, weight_type
     results_df::DataFrame,
     case_studies_df::DataFrame,
@@ -558,7 +650,7 @@ function plot_values_quantiles(
             markercolor=mcolin
         )
     end
-    # ylims!(p, 0.0, 0.15)
+    #ylims!(p, 0.0, 0.15)
 
     savefig(p, savepath)
     @info "Plot saved in: $savepath"
