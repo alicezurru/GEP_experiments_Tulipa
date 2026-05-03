@@ -216,7 +216,7 @@ function fit_rep_period_weights!(
         # TODO: this can be parallelized; investigate
         target_vector = clustering_matrix[:, period]
         d = sum((rp_matrix .- target_vector) .^ 2; dims = 1)[:]
-        subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector) + 0.2 * d
+        subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector) + 0.1 * d
         # mask = zeros(n_rp)
         # mask[1] = 0.1
         # subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector) + mask

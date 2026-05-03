@@ -432,20 +432,20 @@ function main()
                             AND d.profile_name = 'demand';
                                 ")
                 end
-                # df_profiles_rp = TIO.get_table(connection, "profiles_rep_periods")
-                # df_rp_mapping = TIO.get_table(connection, "rep_periods_mapping")
-                # df_rep_periods_data = TIO.get_table(connection, "rep_periods_data")
-                # df_timeframe_data = TIO.get_table(connection, "timeframe_data")
-                # if use_ratio == true
-                #     output_folder = joinpath(@__DIR__, "case_mod_ratio_$profiles_type", case_name)
-                # else
-                #     output_folder = joinpath(@__DIR__, "case_mod_$profiles_type", case_name)
-                # end
-                # mkpath(output_folder)
-                # CSV.write(joinpath(output_folder, "profiles_rep_periods"), df_profiles_rp)
-                # CSV.write(joinpath(output_folder, "rep_periods_mapping"), df_rp_mapping)
-                # CSV.write(joinpath(output_folder, "rep_periods_data"), df_rep_periods_data)
-                # CSV.write(joinpath(output_folder, "timeframe_data"), df_timeframe_data)
+                df_profiles_rp = TIO.get_table(connection, "profiles_rep_periods")
+                df_rp_mapping = TIO.get_table(connection, "rep_periods_mapping")
+                df_rep_periods_data = TIO.get_table(connection, "rep_periods_data")
+                df_timeframe_data = TIO.get_table(connection, "timeframe_data")
+                if use_ratio == true
+                    output_folder = joinpath(@__DIR__, "case_mod_ratio_$profiles_type", case_name)
+                else
+                    output_folder = joinpath(@__DIR__, "case_mod_$profiles_type", case_name)
+                end
+                mkpath(output_folder)
+                CSV.write(joinpath(output_folder, "profiles_rep_periods"), df_profiles_rp)
+                CSV.write(joinpath(output_folder, "rep_periods_mapping"), df_rp_mapping)
+                CSV.write(joinpath(output_folder, "rep_periods_data"), df_rep_periods_data)
+                CSV.write(joinpath(output_folder, "timeframe_data"), df_timeframe_data)
 
                 TEM.populate_with_defaults!(connection)
 
@@ -492,9 +492,9 @@ function main()
 
                     # count steps with loss of load
                     n_lol_ens = count(row -> row.solution > 0.0, eachrow(flow_ens))
-                    # output_folder = joinpath(@__DIR__, "outputs", "fixed", case_name, string(solver))
-                    # mkpath(output_folder)
-                    # TEM.export_solution_to_csv_files(output_folder, energy_problem_benchmark)
+                    output_folder = joinpath(@__DIR__, "outputs", "fixed", case_name, string(solver))
+                    mkpath(output_folder)
+                    TEM.export_solution_to_csv_files(output_folder, energy_problem_benchmark)
                     penalty_loss_of_load_e_demand = JuMP.value(energy_problem_benchmark.model[:penalty_loss_of_load])
                     investment_cost = JuMP.value(energy_problem_benchmark.model[:assets_investment_cost]) + JuMP.value(energy_problem_benchmark.model[:assets_fixed_cost_simple_method])
                     operational_cost = JuMP.value(energy_problem_benchmark.model[:flows_operational_cost])

@@ -463,6 +463,117 @@ function plot_values_stocmethod_weight( #considering different options: stochast
     @info "Plot saved in: $savepath"
 end
 
+# function plot_values_stocmethod_method( # considering options: method, stochastic_method (possible to add weight type dirac)
+#     results_df::DataFrame,
+#     case_studies_df::DataFrame,
+#     values::String;
+#     savepath="relative_regret.png",
+#     include_dirac=false,
+#     logscale=false
+# )
+#     results_with_options = outerjoin(case_studies_df, results_df, on="base_name", makeunique=true)
+
+#     results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
+#     results_with_options = filter(row -> row.rp >= 4, results_with_options)
+
+#     results_with_options = filter(row -> row.method != "conical_hull", results_with_options)
+#     #results_with_options = filter(row -> row.method != "convex_hull_with_null", results_with_options)
+#     #results_with_options = filter(row -> row.method != "convex_hull", results_with_options)
+
+#     rp_vals = sort(unique(results_with_options.rp))
+#     rp_labels = string.(rp_vals)
+#     rp_index = Dict(rp => i for (i, rp) in enumerate(rp_vals))
+
+#     p = plot(
+#         xlabel="Number of representative periods",
+#         ylabel=get(VALUE_MAP, values) do
+#             error("Unknown values: $values")
+#         end,
+#         title="",
+#         legend=:topright,
+#         size=(800, 500),
+#         xticks=(1:length(rp_vals), rp_labels)
+#     )
+
+#     if logscale
+#         yaxis!(p, :log10)
+#     end
+
+#     if !include_dirac
+#         results_with_options = filter(row -> row.weight_type != "dirac", results_with_options)
+#     end
+#     for g in groupby(results_with_options, :base_name)
+#         name = g.base_name[1]
+#         if name == "0_HourlyBenchmark"
+#             continue
+#         end
+#         g_sorted = sort(g, :rp)
+
+
+#         stochastic_method = g.stochastic_method[1]
+#         mk = get(MARKER_MAP, stochastic_method) do
+#             error("Unknown stochastic_method: $stochastic_method")
+#         end
+
+#         method = g.method[1]
+#         mcolout = get(COLOR_MAP_method, method) do
+#             error("Unknown method: $method")
+#         end
+
+#         weight_type = g.weight_type[1]
+#         mcolin = get(FILLER_MAP, weight_type) do
+#             error("Unknown weight_type: $weight_type")
+#         end
+
+#         column = Symbol(values)
+#         xidx = [rp_index[rp] for rp in g_sorted.rp]
+
+#         if !include_dirac
+#             mcolout = :black
+#         end
+
+#         scatter!(
+#             p,
+#             xidx,
+#             g_sorted[!, column],
+#             markershape=mk,
+#             markersize=8,
+#             markercolor=mcolin,
+#             markerstrokecolor=mcolout,
+#             label="",
+#         )
+#     end
+
+#     # # Legend for shapes (stochastic methods)
+#     # for (label, marker) in MARKER_MAP
+#     #     short_label = replace(label, "_scenario" => "-scenario")
+#     #     scatter!(p, [NaN], [NaN];
+#     #         markershape=marker, markersize=8, markercolor=:gray30,
+#     #         label=short_label)
+#     # end
+
+#     # # Legend for colors (method types)
+#     # for (label, color) in COLOR_MAP_method
+#     #     scatter!(p, [NaN], [NaN];
+#     #         markershape=:rect, markersize=8, markercolor=color,
+#     #         label=get(LEGEND_METHOD_MAP, label) do
+#     #             error("Unknown method: $label")
+#     #         end
+#     #     )
+#     # end
+#     if include_dirac
+#         # Legend for filler colors (weights type)
+#         scatter!(p, [NaN], [NaN];
+#             markershape=:rect, markersize=8, markercolor=:white,
+#             label="dirac weights")
+#     end
+#     ylims!(p, 1e-4, 100)
+
+#     savefig(p, savepath)
+#     @info "Plot saved in: $savepath"
+# end
+
+
 function plot_values_stocmethod_method( # considering options: method, stochastic_method (possible to add weight type dirac)
     results_df::DataFrame,
     case_studies_df::DataFrame,
@@ -477,6 +588,8 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
     results_with_options = filter(row -> row.rp >= 4, results_with_options)
 
     results_with_options = filter(row -> row.method != "conical_hull", results_with_options)
+    #results_with_options = filter(row -> row.method != "convex_hull_with_null", results_with_options)
+    #results_with_options = filter(row -> row.method != "convex_hull", results_with_options)
 
     rp_vals = sort(unique(results_with_options.rp))
     rp_labels = string.(rp_vals)
@@ -489,9 +602,15 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
         end,
         title="",
         legend=:topright,
-        size=(800, 500),
-        xticks=(1:length(rp_vals), rp_labels)
-    )
+        legendfont=font(12),
+        size=(500, 650),
+        xticks=(1:length(rp_vals), rp_labels),
+        framestyle=:box,
+        xguidefont=font(14),
+        yguidefont=font(14),
+        tickfont=font(12),
+        grid=true,
+        minorgrid=true,)
 
     if logscale
         yaxis!(p, :log10)
@@ -538,7 +657,7 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
             markersize=8,
             markercolor=mcolin,
             markerstrokecolor=mcolout,
-            label=""
+            label="",
         )
     end
 
@@ -565,7 +684,8 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
             markershape=:rect, markersize=8, markercolor=:white,
             label="dirac weights")
     end
-    # ylims!(p, 0.0, 0.15)
+    # ylims!(p, -10, 150)
+    #ylims!(p, 0, 0.15)
 
     savefig(p, savepath)
     @info "Plot saved in: $savepath"
@@ -745,6 +865,8 @@ function plot_values_quantiles_panel(
         )
 
     end
+    yaxis!(p, :log10)
+    ylims!(p, 1e-3, 10000)
 
     return p
 end

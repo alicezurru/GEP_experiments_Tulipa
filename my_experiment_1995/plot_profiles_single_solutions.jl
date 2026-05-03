@@ -18,6 +18,7 @@ import TOML
 using Revise
 using DataFrames
 using Random
+using Plots
 
 # helper functions
 @info "Including helper functions"
@@ -84,6 +85,7 @@ results_df = DataFrame(;
     operational_cost=Float64[],)
 
 function main()
+    n_scenarios = 2
     # optimize the energy system for each case study
     for row in eachrow(case_studies_info)
         base_name = row[:base_name]
@@ -327,10 +329,17 @@ function main()
                 plots = []
                 for rp in rep_periods
                     df_rp = filter(row -> row.rep_period == rp, df)
-                    p = plot(size=(300, 400), title="RP $rp")
+                    p = plot(size=(100, 300), title="RP $rp")
+                    label_map = Dict(
+                        "solar" => "Solar",
+                        "wind_onshore" => "Wind Onshore",
+                        "wind_offshore" => "Wind Offshore",
+                        "demand" => "Demand"
+                    )
 
                     for group in groupby(df_rp, :profile_name)
-                        name = group.profile_name[1]
+                        raw_name = group.profile_name[1]
+                        name = get(label_map, raw_name, raw_name)
                         plot!(p, group.timestep, group.value, label=name)
                     end
 
@@ -346,7 +355,7 @@ function main()
                     )
                     push!(plots, p)
                 end
-                final_plot = plot(plots..., layout=(2, 4), size=(1200, 600))
+                final_plot = plot(plots..., layout=(2, 4), size=(1200, 800))
                 mkpath("outputs/plots")
                 savefig(final_plot, "outputs/plots/plot_representative_periods.png")
 

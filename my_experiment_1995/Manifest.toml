@@ -1248,7 +1248,7 @@ version = "0.11.3"
 
 [[deps.TulipaClustering]]
 deps = ["CSV", "Clustering", "DataFrames", "Distances", "DuckDB", "DuckDB_jll", "LinearAlgebra", "ProgressBars", "SparseArrays", "Statistics", "TOML", "TulipaIO"]
-git-tree-sha1 = "ebc04010d6b6cf84ef51d68ad9fe09b10353e83c"
+path = "C:/Users/zurrua/Desktop/first_attempts_tulipa/TulipaClustering.jl"
 uuid = "314fac8b-c762-4aa3-9d12-851379729163"
 version = "0.5.2"
 

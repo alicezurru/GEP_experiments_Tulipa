@@ -31,14 +31,14 @@ plot_values_quantiles_grid(
     case_studies_df,
     "rel_regret";
     savepath=joinpath(plot_path, "relative_regret.png"),
-    size=(1600, 1000),
+    size=(1800, 1000),
 )
 plot_values_quantiles_grid(
     (DISTANT=stats_dist, CLOSE=stats_cl, HALFMIXED=stats_hmix, MIXED=stats_mix),
     case_studies_df,
     "num_loss_of_load_e_demand";
     savepath=joinpath(plot_path, "num_loss_of_load_e_demand.png"),
-    size=(1600, 1000),
+    size=(1800, 1000),
 )
 plot_values_quantiles_grid(
     (DISTANT=stats_dist, CLOSE=stats_cl, HALFMIXED=stats_hmix, MIXED=stats_mix),

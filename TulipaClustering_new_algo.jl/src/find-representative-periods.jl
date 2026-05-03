@@ -152,7 +152,8 @@ function find_representative_periods(
     )
 
     # divide the number of RPs in 2: first are the ones that are used in the clustering at the beginning, second the ones that are added as extreme periods later
-    n_rp_first = round(Int, n_rp * 3 / 4)
+    n_rp_first = round(Int, n_rp * 2 / 4)
+    n_rp_first = max(1, n_rp_first)
     n_rp_second = n_rp - n_rp_first
 
     # In both cases, the weights of the complete periods will be found after clustering.
@@ -398,6 +399,7 @@ function _compute_representatives_from_matrix(
             kwargs...,
         )
         hull_indices = hull_indices .+ i_rp
+
         if !isempty(initial_representatives)
             hull_indices = vcat(initial_indices, hull_indices)
         end
@@ -499,6 +501,8 @@ function _compute_representatives_from_matrix(
     else
         throw(ArgumentError("Clustering method is not supported"))
     end
+
+    hull_indices = hull_indices[(i_rp + 1):end]
 
     return clustering_matrix, rp_matrix, assignments, hull_indices .- i_rp
 end

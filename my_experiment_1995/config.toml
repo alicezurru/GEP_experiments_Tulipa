@@ -14,7 +14,7 @@ heuristic_distance = false
 [extreme_periods]
 add_worst_every_hour = false
 add_best_every_hour = false # this can be true only if also the previous one is true
-add_worst_sum = false
-add_worst_sum_real = true
+add_worst_sum = true
+add_worst_sum_real = false
 
 
