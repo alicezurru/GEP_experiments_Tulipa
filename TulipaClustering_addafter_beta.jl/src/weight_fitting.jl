@@ -219,17 +219,17 @@ function fit_rep_period_weights!(
         # normal
         # subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector)
 
-        # with distance
-        d = sum((rp_matrix .- target_vector) .^ 2; dims = 1)[:]
-        # println("d ", d[1:n_artificial_periods])
-        subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector) + 0.5 * d
+        # # with distance
+        # d = sum((rp_matrix .- target_vector) .^ 2; dims = 1)[:]
+        # # println("d ", d[1:n_artificial_periods])
+        # subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector) + 0.5 * d
 
         # only artificial ones
-        # mask = zeros(n_rp)
+        mask = zeros(n_rp)
         #d = sum((rp_matrix .- target_vector) .^ 2; dims = 1)[:]
-        # mask[1:n_artificial_periods] .= 1
+        mask[1:n_artificial_periods] .= 1
         #mask[1:n_artificial_periods] .= 0.5 * d[1:n_artificial_periods]
-        # subgradient = x -> rp_matrix' * (rp_matrix * x - target_vector) + mask
+        subgradient = x -> rp_matrix' * (rp_matrix * x - target_vector) + mask
 
         # # gamma based on R
         # mask = zeros(n_rp)

@@ -216,30 +216,30 @@ function fit_rep_period_weights!(
     for period in periods
         # TODO: this can be parallelized; investigate
         target_vector = clustering_matrix[:, period]
-        # normal
-        subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector)
+        # # normal
+        # subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector)
 
         # with distance
         # d = sum((rp_matrix .- target_vector) .^ 2; dims = 1)[:]
         # subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector) + d
 
-        # # only artificial ones
+        # only artificial ones
         # mask = zeros(n_rp)
         # #d = sum((rp_matrix .- target_vector) .^ 2; dims = 1)[:]
-        # mask[1:n_artificial_periods] .= 0.5
+        # mask[1:n_artificial_periods] .= 10
         # #mask[1:n_artificial_periods] .= 0.1 * d[1:n_artificial_periods]
         # subgradient = x -> rp_matrix' * (rp_matrix * x - target_vector) + mask
 
-        # # gamma based on R
-        # mask = zeros(n_rp)
-        # col_sums = sum(abs.(rp_matrix); dims = 1)
-        # gamma = sqrt(sum(col_sums .^ 2))
-        # #println("gamma", gamma)
-        # gamma = gamma / sqrt(n_rp)
-        # #println(gamma)
-        # mask[1:n_artificial_periods] .= gamma * 0.01
-        # #println(gamma * 0.01)
-        # subgradient = x -> rp_matrix' * (rp_matrix * x - target_vector) + mask
+        # gamma based on R
+        mask = zeros(n_rp)
+        col_sums = sum(abs.(rp_matrix); dims = 1)
+        gamma = sqrt(sum(col_sums .^ 2))
+        #println("gamma", gamma)
+        gamma = gamma / sqrt(n_rp)
+        #println(gamma)
+        mask[1:n_artificial_periods] .= gamma * 0.01
+        #println(gamma * 0.01)
+        subgradient = x -> rp_matrix' * (rp_matrix * x - target_vector) + mask
 
         if weight_type == :conical_bounded
             x = vcat(Vector(weight_matrix[period, 1:(n_rp - 1)]), [0.0])

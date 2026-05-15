@@ -17,7 +17,7 @@ using Plots
 
 user_input_dir = "obz_data_raw/"
 
-connection = DBInterface.connect(DuckDB.DB, "obz.db")
+connection = DBInterface.connect(DuckDB.DB, "obz2.db")
 
 TulipaIO.read_csv_folder(
     connection,

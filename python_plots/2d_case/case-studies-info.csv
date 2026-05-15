@@ -1,0 +1,5 @@
+base_name,period_duration,method,distance,weight_type,niters,learning_rate,stochastic_method,run_case
+kmeans_cross_dirac,1,k_means,Euclidean,dirac,2000,0.1,cross_scenario,false
+kmeans_per_dirac,1,k_means,Euclidean,dirac,2000,0.1,per_scenario,false
+kmedoids_cross_dirac,1,k_medoids,Euclidean,dirac,2000,0.1,cross_scenario,false
+kmedoids_per_dirac,1,k_medoids,Euclidean,dirac,2000,0.1,per_scenario,false

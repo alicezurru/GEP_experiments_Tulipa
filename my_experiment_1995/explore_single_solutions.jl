@@ -59,6 +59,7 @@ case_studies_info = CSV.read(
 
 solvers = [:Gurobi] #[:HiGHS, :Gurobi]
 representative_periods = [4, 8, 12, 16, 20, 30, 60, 90, 120, 180, 240, 360]
+representative_periods = [4, 8, 12, 16, 20, 30]
 enable_names = true
 direct_model = false
 results_df = DataFrame(;
