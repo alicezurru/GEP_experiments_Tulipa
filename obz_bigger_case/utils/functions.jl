@@ -551,7 +551,7 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
             markershape=:rect, markersize=8, markercolor=:white,
             label="dirac weights")
     end
-    #ylims!(p, -100, 500)
+    #ylims!(p, 0, 0.15)
 
     savefig(p, savepath)
     @info "Plot saved in: $savepath"
@@ -841,11 +841,10 @@ end
 function plot_cost_columns_precise(df::DataFrame, savepath::AbstractString)
 
     # Create label column: base_name_rp
-    df.label = string.(df.base_name, "_", df.rp)
+    labels = string.(df.rp)
 
 
     # Keep only relevant columns
-    labels = df.label
     investment_cost_storage = df.investment_cost_storage
     investment_cost_renewable = df.investment_cost_renewable + df.investment_cost_storage
     investment_cost_non_renewable = df.investment_cost_non_renewable + df.investment_cost_renewable + df.investment_cost_storage
@@ -858,21 +857,33 @@ function plot_cost_columns_precise(df::DataFrame, savepath::AbstractString)
     data_matrix = hcat(penalty, operational, investment_cost_electrolyzer, investment_cost_non_renewable, investment_cost_renewable, investment_cost_storage)
     label_order = ["Penalty Loss" "Operational Cost" "Investment Cost Electrolyzer" "Investment Cost Non Renewable" "Investment Cost Renewable" "Investment Cost Storage"]
 
+        
+    # colors = [
+    #         :red,          # penalty
+    #         :steelblue,    # operational
+    #         :orange,       # electrolyzer
+    #         :gray,         # non-renewable
+    #         :green,        # renewable
+    #         :purple        # storage
+    #     ]
+
+
     # Create stacked bar plot
     b = bar(
         labels,
         data_matrix,
         label=label_order,
         legend=:topright,
-        xlabel="Scenario",
-        ylabel="Cost",
-        title="Cost Breakdown per Setting",
+        # color = colors,
+        xlabel="Number of representative periods",
+        ylabel="Cost (kEUR)",
+        title="Cost Breakdown",
         bar_position=:stack,
         xticks=(1:length(labels), labels),
-        xrotation=45,
-        size=(800, 600)
+        size=(900, 600)
     )
 
     savefig(b, savepath)
 
 end
+

@@ -130,6 +130,9 @@ function cluster!(
                 layout,
             ),
             layout,
+            weight_type,
+            tol,
+            weight_fitting_kwargs,
             clustering_kwargs...,
         ) for (group_key, group) in pairs(grouped_profiles_data)
     )

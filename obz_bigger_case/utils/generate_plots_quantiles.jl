@@ -1,5 +1,4 @@
 # Run this only after results given from main: this is for algorithms that are not deterministic such as k-medoids and k-means
-
 using DataFrames
 using CSV
 using Plots
@@ -38,6 +37,17 @@ results_df.num_loss_of_load_e_demand = [
     row.num_loss_of_load_e_demand - hourly_lol_e
     for row in eachrow(results_df)
 ]
+hourly_lol_h2 = only(hourly_row.num_loss_of_load_h2_demand)
+
+results_df.num_loss_of_load_h2_demand = [
+    row.num_loss_of_load_h2_demand - hourly_lol_h2
+    for row in eachrow(results_df)
+]
+
+results_df.total_steps_loss_of_load = [
+    row.num_loss_of_load_e_demand + row.num_loss_of_load_h2_demand
+    for row in eachrow(results_df)
+]
 
 # compute statistics we need
 results_df = combine(
@@ -61,7 +71,10 @@ results_df = combine(
     :num_loss_of_load_e_demand => (x -> quantile(x, 0.75)) => :num_loss_of_load_e_demand_q75,
     :num_loss_of_load_h2_demand => mean => :num_loss_of_load_h2_demand_mean,
     :num_loss_of_load_h2_demand => (x -> quantile(x, 0.25)) => :num_loss_of_load_h2_demand_q25,
-    :num_loss_of_load_h2_demand => (x -> quantile(x, 0.75)) => :num_loss_of_load_h2_demand_q75
+    :num_loss_of_load_h2_demand => (x -> quantile(x, 0.75)) => :num_loss_of_load_h2_demand_q75,
+    :total_steps_loss_of_load => mean => :total_steps_loss_of_load_mean,
+    :total_steps_loss_of_load => (x -> quantile(x, 0.25)) => :total_steps_loss_of_load_q25,
+    :total_steps_loss_of_load => (x -> quantile(x, 0.75)) => :total_steps_loss_of_load_q75
 )
 results_df |> CSV.write(joinpath(output_path, "stats.csv"); writeheader=true)
 

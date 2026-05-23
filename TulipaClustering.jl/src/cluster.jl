@@ -637,65 +637,6 @@ function greedy_convex_hull(
     allowed_kwargs = (:niters, :tol, :learning_rate, :adaptive_grad)
     filtered_kwargs = (; (k => kwargs[k] for k in allowed_kwargs if haskey(kwargs, k))...)
 
-    ### FROM HERE ###
-
-    # d, N = size(matrix)
-    # println("Total points: ", N)
-
-    # extreme_count = 0
-
-    # for i in 1:N
-
-    #     # y = point to test
-    #     y = matrix[:, i]
-
-    #     # H = all other points
-    #     H = matrix[:, setdiff(1:N, [i])]
-    #     k = size(H, 2)
-
-    #     model = Model(HiGHS.Optimizer)
-    #     set_silent(model)
-
-    #     @variable(model, λ[1:k] >= 0)
-    #     @constraint(model, sum(λ) == 1)
-
-    #     # H * λ ≈ y constraints
-    #     for j in 1:d
-    #         @constraint(model, sum(H[j, t] * λ[t] for t in 1:k) - y[j] <= 1e-3)
-    #         @constraint(model, y[j] - sum(H[j, t] * λ[t] for t in 1:k) <= 1e-3)
-    #     end
-
-    #     optimize!(model)
-
-    #     # If model is not feasible → y cannot be represented → y is extreme
-    #     if termination_status(model) != MOI.OPTIMAL
-    #         extreme_count += 1
-    #     end
-    # end
-
-    # println("Number of extreme points: ", extreme_count)
-
-    # d, N = size(matrix)
-    # counts = zeros(Int, N)
-    # println("Total number of points: ", N)
-
-    # for _ in 1:10000000
-    #     # random direction (works without importing Random)
-    #     u = randn(d)
-    #     u ./= norm(u)
-
-    #     # compute dot products
-    #     dots = vec(matrix' * u)
-
-    #     # index of maximum
-    #     i = argmax(dots)
-    #     counts[i] += 1
-    # end
-    # num_estimated = count(counts .> 0)
-    # println("Estimated number of extreme points: ", num_estimated)
-
-    ### TO HERE ###
-
     for _ in starting_index:n_points
         # Find the point that is the furthest away from the current hull
         max_distance = -Inf
@@ -761,63 +702,6 @@ function greedy_convex_hull(
 
         # Add the found point to the hull
         push!(hull_indices, furthest_vector_index)
-
-        # ### from here plus t up in _ ###
-        # if t == n_points
-        #     d, N = size(matrix)
-        #     H = matrix[:, hull_indices]
-        #     k = size(H, 2)
-
-        #     count = 0
-
-        #     for i in 1:N
-        #         y = matrix[:, i]
-
-        #         model = Model(HiGHS.Optimizer)
-        #         set_silent(model)
-
-        #         JuMP.@variable(model, λ[1:k] >= 0)
-
-        #         JuMP.@constraint(model, sum(λ) == 1)
-
-        #         # enforce H * λ ≈ y
-        #         for j in 1:d
-        #             JuMP.@constraint(model, sum(H[j, t] * λ[t] for t in 1:k) - y[j] <= 1e-3)
-        #             JuMP.@constraint(model, y[j] - sum(H[j, t] * λ[t] for t in 1:k) <= 1e-3)
-        #         end
-
-        #         optimize!(model)
-
-        #         if termination_status(model) == MOI.OPTIMAL
-        #             count += 1
-        #         end
-        #     end
-        #     println("Number of total points: ", n_points)
-        #     println("Count: ", count)
-        # println("Number of total points: ", n_points)
-        # count = 0
-        # hull_matrix = matrix[:, hull_indices]
-        # projection_matrix = pinv(hull_matrix)
-        # for column_index in axes(matrix, 2)
-        #     target_vector = matrix[:, column_index]
-        #     subgradient = x -> hull_matrix' * (hull_matrix * x - target_vector)
-        #     x = projection_matrix * target_vector
-        #     x = projected_subgradient_descent!(
-        #         x;
-        #         subgradient,
-        #         projection = project_onto_simplex,
-        #         filtered_kwargs...,
-        #     )
-        #     projected_target = hull_matrix * x
-        #     d = distance(projected_target, target_vector)
-        #     if d < 0.1
-        #         count = count + 1
-        #     end
-        # end
-        # println("Count: ", count)
-        #end
-        # ### to here ###
-
     end
     return hull_indices
 end

@@ -86,6 +86,9 @@ function find_representative_periods(
     distance::SemiMetric = SqEuclidean(),
     initial_representatives::AbstractDataFrame = DataFrame(),
     layout::ProfilesTableLayout = ProfilesTableLayout(),
+    weight_type::Symbol = :dirac,
+    tol::Float64 = 1e-2,
+    weight_fitting_kwargs = Dict(),
     kwargs...,
 )
     # 1. Check that the number of RPs makes sense. The first check can be done immediately,
@@ -148,18 +151,27 @@ function find_representative_periods(
         drop_incomplete_last_period,
     )
 
+    # divide the number of RPs in 2: first are the ones that are used in the clustering at the beginning, second the ones that are added as extreme periods later
+    n_rp_first = round(Int, n_rp * 2 / 4)
+    #n_rp_first = round(Int, sqrt(n_rp))
+    n_rp_first = max(1, n_rp_first)
+    n_rp_second = n_rp - n_rp_first
+
     # In both cases, the weights of the complete periods will be found after clustering.
     if is_last_period_excluded
+        error(
+            "Implementation of this method does not consider possibility of last period incomplete",
+        )
         weight_matrix = sparse([n_periods], [n_rp], [incomplete_period_weight])
         n_rp -= 1  # incomplete last period becomes its own representative, exclude it from clustering
     else
-        weight_matrix = spzeros(n_complete_periods, n_rp)
+        weight_matrix = spzeros(n_complete_periods, n_rp_first)
     end
 
     # 3. Build the clustering matrix
-    clustering_matrix, keys, n_rp = _build_clustering_matrix(
+    clustering_matrix, keys, n_rp_first = _build_clustering_matrix( # for kmedoids here it modifies n_rp_first
         clustering_data,
-        n_rp,
+        n_rp_first,
         initial_representatives,
         i_rp,
         method,
@@ -168,26 +180,27 @@ function find_representative_periods(
         layout,
     )
 
-    # 4. Do the clustering, now that the data is transformed into a matrix
-    clustering_matrix, rp_matrix, assignments = _compute_representatives_from_matrix(
-        clustering_matrix,
-        n_rp,
-        initial_representatives,
-        i_rp,
-        method,
-        aux,
-        n_complete_periods,
-        distance;
-        kwargs...,
-    )
+    # 4.1 Do the clustering, now that the data is transformed into a matrix
+    clustering_matrix, rp_matrix, assignments, hull_indices =
+        _compute_representatives_from_matrix(
+            clustering_matrix,
+            n_rp_first,
+            initial_representatives,
+            i_rp,
+            method,
+            aux,
+            n_complete_periods,
+            distance;
+            kwargs...,
+        )
 
-    # 5. Reinterpret the clustering results into a format we need
+    # 4.2 Reinterpret so we are sure to have right results to insert in fit_rep_period_weights
     rp_df, weight_matrix, rp_matrix = _reinterpret_clustering_results(
         clustering_data,
         clustering_matrix,
         keys,
         rp_matrix,
-        n_rp,
+        n_rp_first,
         initial_representatives,
         i_rp,
         method,
@@ -201,7 +214,119 @@ function find_representative_periods(
         layout,
     )
 
-    return ClusteringResult(rp_df, weight_matrix, clustering_matrix, rp_matrix, aux)
+    # 4.3 Now let's compute the weights to choose which rps to add on top of the others
+    fit_rep_period_weights!(
+        weight_matrix,
+        clustering_matrix,
+        rp_matrix,
+        Int64(i_rp);
+        weight_type,
+        tol,
+        weight_fitting_kwargs...,
+    )
+    #println(weight_matrix[:, 1:min(2, size(weight_matrix, 2))])
+    #println(sum(weight_matrix[:, i_rp]))
+    println("before ", size(rp_matrix))
+
+    # the artificial in hull-based methods are at the beginning, in k-medoids at the end
+
+    # art_pos = method == :k_medoids ?
+    #     (max(1, size(weight_matrix, 2) - i_rp + 1): size(weight_matrix, 2)) :
+    #     (1:min(i_rp, size(weight_matrix, 2)))
+    art_pos = (1:min(i_rp, size(weight_matrix, 2)))
+
+    row_sums = vec(sum(weight_matrix[:, art_pos]; dims = 2)) # vector with the weights of each base rp to the artificial rps
+    positive_rows = findall(>(1e-6), row_sums)
+    n_rp_second_eff = min(n_rp_second, length(positive_rows))
+    top_rows = positive_rows[partialsortperm(
+        row_sums[positive_rows],
+        1:n_rp_second_eff;
+        rev = true,
+    )]
+
+    if !isempty(intersect(hull_indices, top_rows))
+        error(
+            "We should not select a vector that was already selected before",
+            hull_indices,
+            top_rows,
+        )
+    end
+
+    if method in [:k_medoids]
+        n_rp_first = n_rp_first + i_rp # it seemed that this was done inside reinterpret but apparently it is not
+    end
+
+    weight_matrix = spzeros(n_complete_periods, n_rp_first + n_rp_second_eff)
+    rp_matrix = _combine_matrices([rp_matrix, clustering_matrix[:, top_rows]])
+    println("after ", size(rp_matrix))
+
+    if size(rp_matrix, 2) != n_rp_first + n_rp_second_eff
+        error(
+            "wrong size of rp_matrix: ",
+            size(rp_matrix, 2),
+            " instead of ",
+            n_rp_first + n_rp_second_eff,
+        )
+    end
+
+    if n_rp_second != n_rp_second_eff
+        @warn "Wanted to add more extreme periods than necessary: $n_rp_second_eff vs $n_rp_second"
+        # 4.4 Now let's cluster more to gain optimality if we have representative periods available
+        n_rp_final = n_rp_second - n_rp_second_eff
+        cols_to_exclude = union(hull_indices, top_rows)
+        clustering_matrix_remaining =
+            clustering_matrix[:, setdiff(axes(clustering_matrix, 2), cols_to_exclude)] # remove columns with period already represented
+        distance_matrix = pairwise(distance, clustering_matrix_remaining; dims = 2)
+        kmedoids_result = kmedoids(distance_matrix, n_rp_final)
+        rp_matrix_end = clustering_matrix_remaining[:, kmedoids_result.medoids]
+        rp_matrix = _combine_matrices([rp_matrix, rp_matrix_end])
+        if n_rp_first + n_rp_second_eff + n_rp_final != n_rp
+            error("Error with number of RPs")
+        end
+        weight_matrix = spzeros(n_complete_periods, n_rp)
+    end
+    println("after after ", size(rp_matrix))
+
+    if method in [:k_means, :conical_hull] && size(rp_matrix, 2) != 1 # because in reinterpret.. it modifies other stuff with those methods, and we have not implemented it with conical (size to exclude benchmark)
+        error("This method is not implemented with ", method)
+    end
+
+    # 5. Reinterpret the clustering results into a format we need (here the weight_matrix is also initialized to the closest RP)
+    # rp_df, weight_matrix, rp_matrix = _reinterpret_clustering_results( # if with k-medoids we did this again we would add artificial periods another time, so we only do the assignments
+    #     clustering_data,
+    #     clustering_matrix,
+    #     keys,
+    #     rp_matrix,
+    #     n_rp_first + n_rp_second_eff,
+    #     initial_representatives,
+    #     i_rp,
+    #     method,
+    #     aux,
+    #     n_complete_periods,
+    #     n_periods,
+    #     complete_period_weight,
+    #     weight_matrix,
+    #     is_last_period_excluded,
+    #     distance,
+    #     layout,
+    # )
+    rp_df = if rp_matrix ≡ nothing
+        nothing
+    else
+        matrix_and_keys_to_df(rp_matrix, keys; layout)
+    end
+
+    assignments = [
+        argmin([
+            distance(clustering_matrix[:, p], rp_matrix[:, r]) for r in axes(rp_matrix, 2)
+        ]) for p in 1:n_complete_periods
+    ]
+
+    for (p, rp) in enumerate(assignments)
+        weight_matrix[p, rp] = complete_period_weight
+    end
+
+    return ClusteringResult(rp_df, weight_matrix, clustering_matrix, rp_matrix, aux, i_rp)
 end
 
 function _build_clustering_matrix(
@@ -266,6 +391,7 @@ function _compute_representatives_from_matrix(
     distance;
     kwargs...,
 )
+    hull_indices = Int[]
     if n_rp == 0 # If due to the additional representatives we have no clustering, create an empty placeholder
         rp_matrix = nothing
         assignments = Int[]
@@ -286,6 +412,9 @@ function _compute_representatives_from_matrix(
         rp_matrix = clustering_matrix[:, kmedoids_result.medoids]
         assignments = kmedoids_result.assignments
         aux.medoids = kmedoids_result.medoids
+
+        return clustering_matrix, rp_matrix, assignments, aux.medoids
+
     elseif method ≡ :convex_hull
         # Do the clustering, with initial indices if provided
         initial_indices = if !isempty(initial_representatives)
@@ -293,13 +422,18 @@ function _compute_representatives_from_matrix(
         else
             nothing
         end
+        clustering_matrix_no_art = clustering_matrix[:, (i_rp + 1):end] # to not start with the artificial ones
         hull_indices = greedy_convex_hull(
-            clustering_matrix;
-            initial_indices = initial_indices,
-            n_points = n_rp,
+            clustering_matrix_no_art;
+            # initial_indices = initial_indices,
+            n_points = n_rp - i_rp, # so that only the others are computed
             distance,
             kwargs...,
         )
+        hull_indices = hull_indices .+ i_rp
+        if !isempty(initial_representatives)
+            hull_indices = vcat(initial_indices, hull_indices)
+        end
 
         # Reinterpret the results
         rp_matrix = clustering_matrix[:, hull_indices]
@@ -326,20 +460,25 @@ function _compute_representatives_from_matrix(
         end
 
         # Add null to the clustering matrix
-        matrix = [zeros(size(clustering_matrix, 1), 1) clustering_matrix]
+        clustering_matrix_no_art = clustering_matrix[:, (i_rp + 1):end]
+        matrix = [zeros(size(clustering_matrix, 1), 1) clustering_matrix_no_art]
 
         # Do the clustering
         hull_indices = greedy_convex_hull(
             matrix;
-            n_points = n_rp + 1,
+            n_points = n_rp + 1 - i_rp,
             distance,
-            initial_indices = collect(1:(i_rp + 1)),
+            initial_indices = [1], # only 0
             kwargs...,
         )
 
         # Remove null from the beginning and shift all indices by one
         popfirst!(hull_indices)
         hull_indices .-= 1
+        hull_indices = hull_indices .+ i_rp
+        if !isempty(initial_representatives)
+            hull_indices = vcat(collect(1:i_rp), hull_indices)
+        end
 
         # Reinterpret the results
         rp_matrix = clustering_matrix[:, hull_indices]
@@ -393,8 +532,8 @@ function _compute_representatives_from_matrix(
     else
         throw(ArgumentError("Clustering method is not supported"))
     end
-
-    return clustering_matrix, rp_matrix, assignments
+    hull_indices = hull_indices[(i_rp + 1):end]
+    return clustering_matrix, rp_matrix, assignments, hull_indices .- i_rp
 end
 
 function _reinterpret_clustering_results(
@@ -425,17 +564,35 @@ function _reinterpret_clustering_results(
 
     # In case of initial representatives and a non hull method, we add them now
     if !isempty(initial_representatives) && method in [:k_means, :k_medoids]
+        # representatives_to_add = select!(
+        #     initial_representatives,
+        #     period_col => :rep_period,
+        #     aux.key_columns...,
+        #     layout.value,
+        # )
+        # representatives_to_add.rep_period .= representatives_to_add.rep_period .+ n_rp
+        # rp_df = if rp_df === nothing
+        #     representatives_to_add
+        # else
+        #     vcat(rp_df, representatives_to_add)
+        # end
+        # rename!(rp_df, :rep_period => period_col)
+        # rp_matrix, keys = df_to_matrix_and_keys(rp_df, aux.key_columns; layout)
+        # rename!(rp_df, period_col => :rep_period)
+        # n_rp += i_rp
+
+        # to add them at the beginning
         representatives_to_add = select!(
             initial_representatives,
             period_col => :rep_period,
             aux.key_columns...,
             layout.value,
         )
-        representatives_to_add.rep_period .= representatives_to_add.rep_period .+ n_rp
         rp_df = if rp_df === nothing
             representatives_to_add
         else
-            vcat(rp_df, representatives_to_add)
+            rp_df.rep_period .= rp_df.rep_period .+ i_rp
+            vcat(representatives_to_add, rp_df)
         end
         rename!(rp_df, :rep_period => period_col)
         rp_matrix, keys = df_to_matrix_and_keys(rp_df, aux.key_columns; layout)
@@ -471,4 +628,25 @@ function _reinterpret_clustering_results(
     end
 
     return rp_df, weight_matrix, rp_matrix
+end
+
+function _combine_matrices(matrices::Vector{Matrix{Float64}})
+    # compute total rows
+    n_rows = size(matrices[1], 1)
+    # assume all matrices have same rows
+    tot_cols = 0
+    for M in matrices
+        tot_cols = tot_cols + size(M, 2)
+    end
+
+    combined = zeros(Float64, n_rows, tot_cols)
+
+    # fill block by block
+    col_offset = 0
+    for M in matrices
+        n_cols = size(M, 2)
+        combined[:, (col_offset + 1):(col_offset + n_cols)] .= M
+        col_offset += n_cols
+    end
+    return combined
 end

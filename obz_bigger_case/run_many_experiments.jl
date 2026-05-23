@@ -93,6 +93,9 @@ function main()
     # set up the connection and read the data
     connection_benchmark = DuckDB.DBInterface.connect(DuckDB.DB)
     TIO.read_csv_folder(connection_benchmark, input_data_path)
+    
+    # tables = DuckDB.execute(connection_benchmark, "SHOW TABLES") |> collect
+    # println(tables)
 
     # To make number of rps comparable with per and cross scenario
     # we consider the case that n_rps is not divisible by the number of scenarios

@@ -175,7 +175,8 @@ The arguments:
 function fit_rep_period_weights!(
     weight_matrix::Union{SparseMatrixCSC{Float64, Int64}, Matrix{Float64}},
     clustering_matrix::Matrix{Float64},
-    rp_matrix::Matrix{Float64};
+    rp_matrix::Matrix{Float64},
+    n_artificial_periods::Int64;
     weight_type::Symbol = :dirac,
     tol::Float64 = 1e-2,
     show_progress = false,
@@ -215,16 +216,56 @@ function fit_rep_period_weights!(
     for period in periods
         # TODO: this can be parallelized; investigate
         target_vector = clustering_matrix[:, period]
-        d = sum((rp_matrix .- target_vector) .^ 2; dims = 1)[:]
-        subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector) + 0.05 * d
+        # # normal
+        # subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector)
+
+        # with distance
+        # d = sum((rp_matrix .- target_vector) .^ 2; dims = 1)[:]
+        # subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector) + d
+
+        # only artificial ones
         # mask = zeros(n_rp)
-        # mask[1] = 0.1
-        # subgradient = (x) -> rp_matrix' * (rp_matrix * x - target_vector) + mask
+        # #d = sum((rp_matrix .- target_vector) .^ 2; dims = 1)[:]
+        # mask[1:n_artificial_periods] .= 10
+        # #mask[1:n_artificial_periods] .= 0.1 * d[1:n_artificial_periods]
+        # subgradient = x -> rp_matrix' * (rp_matrix * x - target_vector) + mask
+
+        # # gamma based on R
+        # mask = zeros(n_rp)
+        # col_sums = sum(abs.(rp_matrix), dims=1)
+        # gamma = sqrt(sum(col_sums .^ 2))
+        # #println("gamma", gamma)
+        # gamma = gamma / sqrt(n_rp)
+        # #println(gamma)
+        # mask[1:n_artificial_periods] .= gamma * 0.01
+        # #println(gamma * 0.01)
+        # subgradient = x -> rp_matrix' * (rp_matrix * x - target_vector) + mask
+
+        # # other gamma based on R
+        # mask = zeros(n_rp)
+        # gamma = sum(rp_matrix; dims = 1)[:]
+        # mask[1:n_artificial_periods] .= 0.001 .* gamma[1:n_artificial_periods]
+        # subgradient = x -> rp_matrix' * (rp_matrix * x - target_vector) + mask
+
+        # third gamma based on R
+        mask = zeros(n_rp)
+        gamma = mean(sum(rp_matrix; dims = 1))
+        alpha = 0.005
+        # if method ≡ :k_medoids
+        #     mask[(end - n_artificial_periods + 1):end] .= alpha * gamma
+        # else
+        #     mask[1:n_artificial_periods] .= alpha * gamma
+        # end
+        mask[1:n_artificial_periods] .= alpha * gamma
+        println(mask)
+        subgradient = x -> rp_matrix' * (rp_matrix * x - target_vector) + mask
+
         if weight_type == :conical_bounded
             x = vcat(Vector(weight_matrix[period, 1:(n_rp - 1)]), [0.0])
         else
             x = Vector(weight_matrix[period, 1:n_rp])
         end
+
         x = projected_subgradient_descent!(
             x;
             subgradient,
@@ -287,7 +328,8 @@ function fit_rep_period_weights!(
     fit_rep_period_weights!(
         clustering_result.weight_matrix,
         clustering_result.clustering_matrix,
-        clustering_result.rp_matrix;
+        clustering_result.rp_matrix,
+        clustering_result.n_artificial_periods;
         weight_type,
         tol,
         args...,

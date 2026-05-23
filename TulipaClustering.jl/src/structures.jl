@@ -29,6 +29,7 @@ mutable struct ClusteringResult
     clustering_matrix::Union{Matrix{Float64}, Nothing}
     rp_matrix::Union{Matrix{Float64}, Nothing}
     auxiliary_data::Union{AuxiliaryClusteringData, Nothing}
+    n_artificial_periods::Union{Int, Nothing}
 
     function ClusteringResult(
         profiles,
@@ -36,11 +37,19 @@ mutable struct ClusteringResult
         clustering_matrix,
         rp_matrix,
         auxiliary_data,
+        n_artificial_periods,
     )
-        return new(profiles, weight_matrix, clustering_matrix, rp_matrix, auxiliary_data)
+        return new(
+            profiles,
+            weight_matrix,
+            clustering_matrix,
+            rp_matrix,
+            auxiliary_data,
+            n_artificial_periods,
+        )
     end
 
     function ClusteringResult(profiles, weight_matrix)
-        return new(profiles, weight_matrix, nothing, nothing, nothing)
+        return new(profiles, weight_matrix, nothing, nothing, nothing, nothing)
     end
 end
