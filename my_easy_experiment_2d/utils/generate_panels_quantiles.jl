@@ -43,6 +43,13 @@ plot_values_quantiles_grid(
 plot_values_quantiles_grid(
     (DISTANT=stats_dist, ADJACENT=stats_adj, HALFMIXED=stats_hmix, MIXED=stats_mix),
     case_studies_df,
+    "loss_of_load_e_demand";
+    savepath=joinpath(plot_path, "loss_of_load_e_demand.png"),
+    size=(1500, 1000),
+)
+plot_values_quantiles_grid(
+    (DISTANT=stats_dist, ADJACENT=stats_adj, HALFMIXED=stats_hmix, MIXED=stats_mix),
+    case_studies_df,
     "time_to_cluster";
     savepath=joinpath(plot_path, "time_to_cluster.png"),
     size=(1500, 1000),

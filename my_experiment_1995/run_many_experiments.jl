@@ -87,12 +87,15 @@ results_df = DataFrame(;
     time_to_save=Float64[],
     objective_value=Float64[],
     termination_status=String[],
+    reduced_num_lol=Int[],
+    reduced_lol=Float64[],
     num_constraints=Int[],
     num_variables=Int[],
     time_to_resolve_benchmark=Float64[],
     objective_value_resolve_benchmark=Float64[],
     termination_status_resolve_benchmark=String[],
     num_loss_of_load_e_demand=Int[],
+    loss_of_load_e_demand=Float64[],
 )
 
 function main()
@@ -153,6 +156,7 @@ function main()
 
         # count steps with loss of load
         n_lol_ens = count(row -> row.solution > 0.0, eachrow(flow_ens))
+        lol_ens = sum(flow_ens.solution)
 
         new_results_row = (
             base_name=base_name,
@@ -165,6 +169,8 @@ function main()
             time_to_save=time_to_save,
             objective_value=energy_problem_benchmark.objective_value,
             termination_status=string(energy_problem_benchmark.termination_status),
+            reduced_num_lol=0,
+            reduced_lol=0.0,
             num_constraints=JuMP.num_constraints(
                 energy_problem_benchmark.model;
                 count_variable_in_set_constraints=false,
@@ -174,9 +180,9 @@ function main()
             objective_value_resolve_benchmark=0.0,
             termination_status_resolve_benchmark="",
             num_loss_of_load_e_demand=n_lol_ens,
+            loss_of_load_e_demand=lol_ens
         )
         push!(results_df, new_results_row)
-
 
     end
 
@@ -506,6 +512,13 @@ function main()
                     time_to_save = @elapsed TEM.save_solution!(energy_problem)
                     TEM.export_solution_to_csv_files(output_folder, energy_problem)
 
+                    var_flow_red_df = TIO.get_table(connection, "var_flow")
+                    flow_ens_red = filter(row -> row.from_asset == "ens" && row.to_asset == "e_demand", var_flow_red_df)
+
+                    # count steps with loss of load
+                    n_lol_ens_red = count(row -> row.solution > 0.0, eachrow(flow_ens_red))
+                    lol_ens_red = sum(flow_ens_red.solution)
+
                     @info "Fixing variables in the benchmark case study: $case_name with $solver"
                     fix_variables_from_solution!(energy_problem_benchmark, energy_problem, :assets_investment)
                     fix_variables_from_solution!(energy_problem_benchmark, energy_problem, :assets_investment_energy)
@@ -527,6 +540,7 @@ function main()
 
                     # count steps with loss of load
                     n_lol_ens = count(row -> row.solution > 0.0, eachrow(flow_ens))
+                    lol_ens = sum(flow_ens.solution)
                     # output_folder = joinpath(@__DIR__, "outputs", "fixed", case_name, string(solver))
                     # mkpath(output_folder)
                     # TEM.export_solution_to_csv_files(output_folder, energy_problem_benchmark)
@@ -543,6 +557,8 @@ function main()
                         time_to_save=time_to_save,
                         objective_value=energy_problem.objective_value,
                         termination_status=string(energy_problem.termination_status),
+                        reduced_num_lol=n_lol_ens_red,
+                        reduced_lol=lol_ens_red,
                         num_constraints=JuMP.num_constraints(
                             energy_problem.model;
                             count_variable_in_set_constraints=false,
@@ -554,6 +570,7 @@ function main()
                             energy_problem_benchmark.termination_status,
                         ),
                         num_loss_of_load_e_demand=n_lol_ens,
+                        loss_of_load_e_demand=lol_ens,
                     )
                     push!(results_df, new_results_row)
                 end

@@ -77,6 +77,7 @@ results_df = DataFrame(;
     objective_value_resolve_benchmark=Float64[],
     termination_status_resolve_benchmark=String[],
     num_loss_of_load_e_demand=Int[],
+    loss_of_load_e_demand=Float64[],
 )
 
 function main()
@@ -135,8 +136,10 @@ function main()
         var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
         flow_ens = filter(row -> row.from_asset == "ens" && row.to_asset == "e_demand", var_flow_df)
 
+
         # count steps with loss of load
         n_lol_ens = count(row -> row.solution > 0.0, eachrow(flow_ens))
+        lol_ens = sum(flow_ens.solution)
 
         new_results_row = (
             base_name=base_name,
@@ -158,6 +161,7 @@ function main()
             objective_value_resolve_benchmark=0.0,
             termination_status_resolve_benchmark="",
             num_loss_of_load_e_demand=n_lol_ens,
+            loss_of_load_e_demand=lol_ens
         )
         push!(results_df, new_results_row)
 
@@ -381,6 +385,7 @@ function main()
 
                     # count steps with loss of load
                     n_lol_ens = count(row -> row.solution > 0.0, eachrow(flow_ens))
+                    lol_ens = sum(flow_ens.solution)
                     # output_folder = joinpath(@__DIR__, "outputs", "fixed", case_name, string(solver))
                     # mkpath(output_folder)
                     # TEM.export_solution_to_csv_files(output_folder, energy_problem_benchmark)
@@ -408,6 +413,7 @@ function main()
                             energy_problem_benchmark.termination_status,
                         ),
                         num_loss_of_load_e_demand=n_lol_ens,
+                        loss_of_load_e_demand=lol_ens
                     )
                     push!(results_df, new_results_row)
                 end

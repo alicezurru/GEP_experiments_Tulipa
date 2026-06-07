@@ -4,7 +4,7 @@ using CSV
 cd(@__DIR__)
 
 function prepare_demand_data()
-    input_data_file = "C:Demand_timeseries_raw/"
+    input_data_file = "Demand_timeseries_raw/"
 
     #prefix_countries = ["AT", "BE", "BG", "CH", "CY", "CZ", "DE", "DK", "EE", "ES", "FI", "FR", "GR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "NO", "PL", "PT", "RO", "SE", "SI", "SK", "UK"]
     country_map = Dict(
@@ -42,7 +42,7 @@ function prepare_demand_data()
     prefixes = collect(keys(country_map))
     n_countries = length(prefixes)
 
-    n_scenarios = 10
+    n_scenarios = 5
     profiles_list_full = Vector{DataFrame}(undef, n_countries * n_scenarios)
     scenario_cols = ["WS" * lpad(string(j), 2, '0') for j in 1:36] # i take them all to compute the maximum across the 36 scenarios
 
@@ -94,7 +94,7 @@ function prepare_demand_data()
 
 
         n_timesteps = nrow(demand_sum) # 8760
-        profiles_list = Vector{DataFrame}(undef, n_scenarios) # 10 scenario dataframes
+        profiles_list = Vector{DataFrame}(undef, n_scenarios) # 7 scenario dataframes
         for (s, ws) in enumerate(scenario_cols[1:n_scenarios])
             profiles_list[s] = DataFrame(
                 year=fill(2050, n_timesteps), # in OBZ case we use year 2050, profiles are taken from 2030

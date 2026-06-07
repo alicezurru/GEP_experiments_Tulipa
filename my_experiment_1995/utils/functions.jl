@@ -684,7 +684,7 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
             markershape=:rect, markersize=8, markercolor=:white,
             label="dirac weights")
     end
-    #ylims!(p, -20, 250)
+    #ylims!(p, -1, 30)
     #ylims!(p, 0, 0.15)
 
     savefig(p, savepath)

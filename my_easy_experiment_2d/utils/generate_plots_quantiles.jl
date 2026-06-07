@@ -39,6 +39,14 @@ results_df.num_loss_of_load_e_demand = [
     for row in eachrow(results_df)
 ]
 
+# compute total loss of load
+lol_e = only(hourly_row.loss_of_load_e_demand)
+
+results_df.loss_of_load_e_demand = [
+    row.loss_of_load_e_demand - lol_e
+    for row in eachrow(results_df)
+]
+
 # compute statistics we need
 results_df = combine(
     groupby(results_df, [:base_name, :rp]), :time_to_cluster => mean => :time_to_cluster_mean,
@@ -57,7 +65,9 @@ results_df = combine(
     :rel_regret => (x -> quantile(x, 0.25)) => :rel_regret_q25,
     :rel_regret => (x -> quantile(x, 0.75)) => :rel_regret_q75, :num_loss_of_load_e_demand => mean => :num_loss_of_load_e_demand_mean,
     :num_loss_of_load_e_demand => (x -> quantile(x, 0.25)) => :num_loss_of_load_e_demand_q25,
-    :num_loss_of_load_e_demand => (x -> quantile(x, 0.75)) => :num_loss_of_load_e_demand_q75
+    :num_loss_of_load_e_demand => (x -> quantile(x, 0.75)) => :num_loss_of_load_e_demand_q75, :loss_of_load_e_demand => mean => :loss_of_load_e_demand_mean,
+    :loss_of_load_e_demand => (x -> quantile(x, 0.25)) => :loss_of_load_e_demand_q25,
+    :loss_of_load_e_demand => (x -> quantile(x, 0.75)) => :loss_of_load_e_demand_q75
 )
 results_df |> CSV.write(joinpath(output_path, "stats.csv"); writeheader=true)
 
@@ -86,3 +96,6 @@ plot_values_quantiles(results_df, case_studies_df, "total_time"; savepath=joinpa
 
 @info "Plotting number of steps with lol e_demand"
 plot_values_quantiles(results_df, case_studies_df, "num_loss_of_load_e_demand"; savepath=joinpath(plot_path, "num_loss_of_load_e_demand"))
+
+@info "Plotting total lol e_demand"
+plot_values_quantiles(results_df, case_studies_df, "loss_of_load_e_demand"; savepath=joinpath(plot_path, "amount_loss_of_load_e_demand"))

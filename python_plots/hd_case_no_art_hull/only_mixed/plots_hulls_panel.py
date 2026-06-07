@@ -41,7 +41,7 @@ VALUE_MAP = {
 }
 
 YLIM_MAP = {
-    "rel_regret": (0.0, 0.05),
+    "rel_regret": (0.0, 0.03),
     "num_loss_of_load_e_demand": (-18.0, 150),
 }
 

@@ -59,8 +59,15 @@ results_df.num_loss_of_load_e_demand = [
     row.num_loss_of_load_e_demand - hourly_lol_e
     for row in eachrow(results_df)
 ]
-
-
+lol_e = only(hourly_row.loss_of_load_e_demand)
+results_df.loss_of_load_e_demand = [
+    row.loss_of_load_e_demand - lol_e
+    for row in eachrow(results_df)
+]
 
 @info "Plotting number of steps with lol e_demand"
 plot_values_stocmethod_method(results_df, case_studies_df, "num_loss_of_load_e_demand"; savepath=joinpath(plot_path, "num_loss_of_load_e_demand"))
+
+@info "Plotting lol e_demand"
+plot_values_stocmethod_method(results_df, case_studies_df, "loss_of_load_e_demand"; savepath=joinpath(plot_path, "loss_of_load_e_demand"))
+

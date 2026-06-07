@@ -55,6 +55,7 @@ const LEGEND_MAP = Dict(
 const VALUE_MAP = Dict(
     "rel_regret" => "Relative regret",
     "num_loss_of_load_e_demand" => "Number of timesteps with loss of load",
+    "loss_of_load_e_demand" => "Loss of load",
     "time_to_cluster" => "Time to cluster (s)",
     "time_to_create" => "Time to create (s)",
     "time_to_solve" => "Time to solve (s)",

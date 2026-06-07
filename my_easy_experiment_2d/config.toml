@@ -2,7 +2,7 @@
 
 [simulation]
 input_data = "input_data/"
-profiles_type = "ADJACENT"
+profiles_type = "HALFMIXED"
 # possibilities: "DISTANT", "ADJACENT", "MIXED", "HALFMIXED"
 n_runs = 10
 

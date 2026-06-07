@@ -1,5 +1,5 @@
 asset,milestone_year,commission_year,initial_units,initial_storage_units
-AT_Battery,2050,2050,0,1
+AT_Battery,2050,2050,0,0
 AT_E_Demand,2050,2050,,
 AT_E_ENS,2050,2050,1,
 AT_Gas,2050,2050,0,
@@ -11,7 +11,7 @@ AT_Pump_Hydro_Open,2050,2050,1,1
 AT_Solar,2050,2050,0,
 AT_Wind_Onshore,2050,2050,0,
 AT_electrolyzer,2050,2050,0,
-BE_Battery,2050,2050,0,1
+BE_Battery,2050,2050,0,0
 BE_E_Demand,2050,2050,,
 BE_E_ENS,2050,2050,1,
 BE_Gas,2050,2050,0,
@@ -22,7 +22,7 @@ BE_Solar,2050,2050,0,
 BE_Wind_Offshore,2050,2050,0,
 BE_Wind_Onshore,2050,2050,0,
 BE_electrolyzer,2050,2050,0,
-BG_Battery,2050,2050,0,1
+BG_Battery,2050,2050,0,0
 BG_Coal,2050,2050,0,
 BG_E_Demand,2050,2050,,
 BG_E_ENS,2050,2050,1,
@@ -37,7 +37,7 @@ BG_Pump_Hydro_Open,2050,2050,1,1
 BG_Solar,2050,2050,0,
 BG_Wind_Onshore,2050,2050,0,
 BG_electrolyzer,2050,2050,0,
-CH_Battery,2050,2050,0,1
+CH_Battery,2050,2050,0,0
 CH_E_Demand,2050,2050,,
 CH_E_ENS,2050,2050,1,
 CH_H_Demand,2050,2050,,
@@ -48,7 +48,7 @@ CH_Pump_Hydro_Open,2050,2050,1,1
 CH_Solar,2050,2050,0,
 CH_Wind_Onshore,2050,2050,0,
 CH_electrolyzer,2050,2050,0,
-CY_Battery,2050,2050,0,1
+CY_Battery,2050,2050,0,0
 CY_E_Demand,2050,2050,,
 CY_E_ENS,2050,2050,1,
 CY_Gas,2050,2050,0,
@@ -56,7 +56,7 @@ CY_H_Demand,2050,2050,,
 CY_Solar,2050,2050,0,
 CY_Wind_Onshore,2050,2050,0,
 CY_electrolyzer,2050,2050,0,
-CZ_Battery,2050,2050,0,1
+CZ_Battery,2050,2050,0,0
 CZ_Coal,2050,2050,0,
 CZ_E_Demand,2050,2050,,
 CZ_E_ENS,2050,2050,1,
@@ -70,7 +70,7 @@ CZ_Pump_Hydro_Open,2050,2050,1,1
 CZ_Solar,2050,2050,0,
 CZ_Wind_Onshore,2050,2050,0,
 CZ_electrolyzer,2050,2050,0,
-DE_Battery,2050,2050,0,1
+DE_Battery,2050,2050,0,0
 DE_Coal,2050,2050,0,
 DE_E_Demand,2050,2050,,
 DE_E_ENS,2050,2050,1,
@@ -85,7 +85,7 @@ DE_Solar,2050,2050,0,
 DE_Wind_Offshore,2050,2050,0,
 DE_Wind_Onshore,2050,2050,0,
 DE_electrolyzer,2050,2050,0,
-DK_Battery,2050,2050,0,1
+DK_Battery,2050,2050,0,0
 DK_E_Demand,2050,2050,,
 DK_E_ENS,2050,2050,1,
 DK_Gas,2050,2050,0,
@@ -102,7 +102,7 @@ EE_Solar,2050,2050,0,
 EE_Wind_Offshore,2050,2050,0,
 EE_Wind_Onshore,2050,2050,0,
 EE_electrolyzer,2050,2050,0,
-ES_Battery,2050,2050,0,1
+ES_Battery,2050,2050,0,0
 ES_E_Demand,2050,2050,,
 ES_E_ENS,2050,2050,1,
 ES_Gas,2050,2050,0,
@@ -117,7 +117,7 @@ ES_Wind_Offshore,2050,2050,0,
 ES_Wind_Onshore,2050,2050,0,
 ES_electrolyzer,2050,2050,0,
 EU_SMR_CCS,2050,2050,1,
-FI_Battery,2050,2050,0,1
+FI_Battery,2050,2050,0,0
 FI_E_Demand,2050,2050,,
 FI_E_ENS,2050,2050,1,
 FI_Gas,2050,2050,0,
@@ -129,7 +129,7 @@ FI_Solar,2050,2050,0,
 FI_Wind_Offshore,2050,2050,0,
 FI_Wind_Onshore,2050,2050,0,
 FI_electrolyzer,2050,2050,0,
-FR_Battery,2050,2050,0,1
+FR_Battery,2050,2050,0,0
 FR_E_Demand,2050,2050,,
 FR_E_ENS,2050,2050,1,
 FR_Gas,2050,2050,0,
@@ -144,7 +144,7 @@ FR_Solar,2050,2050,0,
 FR_Wind_Offshore,2050,2050,0,
 FR_Wind_Onshore,2050,2050,0,
 FR_electrolyzer,2050,2050,0,
-GR_Battery,2050,2050,0,1
+GR_Battery,2050,2050,0,0
 GR_E_Demand,2050,2050,,
 GR_E_ENS,2050,2050,1,
 GR_Gas,2050,2050,0,
@@ -158,7 +158,7 @@ GR_Solar,2050,2050,0,
 GR_Wind_Offshore,2050,2050,0,
 GR_Wind_Onshore,2050,2050,0,
 GR_electrolyzer,2050,2050,0,
-HR_Battery,2050,2050,0,1
+HR_Battery,2050,2050,0,0
 HR_Coal,2050,2050,0,
 HR_E_Demand,2050,2050,,
 HR_E_ENS,2050,2050,1,
@@ -171,7 +171,7 @@ HR_Solar,2050,2050,0,
 HR_Wind_Offshore,2050,2050,0,
 HR_Wind_Onshore,2050,2050,0,
 HR_electrolyzer,2050,2050,0,
-HU_Battery,2050,2050,0,1
+HU_Battery,2050,2050,0,0
 HU_E_Demand,2050,2050,,
 HU_E_ENS,2050,2050,1,
 HU_Gas,2050,2050,0,
@@ -182,7 +182,7 @@ HU_OCGT,2050,2050,0,
 HU_Solar,2050,2050,0,
 HU_Wind_Onshore,2050,2050,0,
 HU_electrolyzer,2050,2050,0,
-IE_Battery,2050,2050,0,1
+IE_Battery,2050,2050,0,0
 IE_E_Demand,2050,2050,,
 IE_E_ENS,2050,2050,1,
 IE_Gas,2050,2050,0,
@@ -194,7 +194,7 @@ IE_Solar,2050,2050,0,
 IE_Wind_Offshore,2050,2050,0,
 IE_Wind_Onshore,2050,2050,0,
 IE_electrolyzer,2050,2050,0,
-IT_Battery,2050,2050,0,1
+IT_Battery,2050,2050,0,0
 IT_E_Demand,2050,2050,,
 IT_E_ENS,2050,2050,1,
 IT_Gas,2050,2050,0,
@@ -208,7 +208,7 @@ IT_Solar,2050,2050,0,
 IT_Wind_Offshore,2050,2050,0,
 IT_Wind_Onshore,2050,2050,0,
 IT_electrolyzer,2050,2050,0,
-LT_Battery,2050,2050,0,1
+LT_Battery,2050,2050,0,0
 LT_E_Demand,2050,2050,,
 LT_E_ENS,2050,2050,1,
 LT_Gas,2050,2050,0,
@@ -227,7 +227,7 @@ LU_Pump_Hydro_Closed,2050,2050,1,1
 LU_Solar,2050,2050,0,
 LU_Wind_Onshore,2050,2050,0,
 LU_electrolyzer,2050,2050,0,
-LV_Battery,2050,2050,0,1
+LV_Battery,2050,2050,0,0
 LV_E_Demand,2050,2050,,
 LV_E_ENS,2050,2050,1,
 LV_Gas,2050,2050,0,
@@ -243,7 +243,7 @@ MT_Gas,2050,2050,0,
 MT_H_Demand,2050,2050,,
 MT_Solar,2050,2050,0,
 MT_electrolyzer,2050,2050,0,
-NL_Battery,2050,2050,0,1
+NL_Battery,2050,2050,0,0
 NL_E_Demand,2050,2050,,
 NL_E_ENS,2050,2050,1,
 NL_Gas,2050,2050,0,
@@ -279,7 +279,7 @@ PL_Solar,2050,2050,0,
 PL_Wind_Offshore,2050,2050,0,
 PL_Wind_Onshore,2050,2050,0,
 PL_electrolyzer,2050,2050,0,
-PT_Battery,2050,2050,0,1
+PT_Battery,2050,2050,0,0
 PT_E_Demand,2050,2050,,
 PT_E_ENS,2050,2050,1,
 PT_Gas,2050,2050,0,
@@ -291,7 +291,7 @@ PT_Solar,2050,2050,0,
 PT_Wind_Offshore,2050,2050,0,
 PT_Wind_Onshore,2050,2050,0,
 PT_electrolyzer,2050,2050,0,
-RO_Battery,2050,2050,0,1
+RO_Battery,2050,2050,0,0
 RO_Coal,2050,2050,0,
 RO_E_Demand,2050,2050,,
 RO_E_ENS,2050,2050,1,
@@ -306,7 +306,7 @@ RO_Solar,2050,2050,0,
 RO_Wind_Offshore,2050,2050,0,
 RO_Wind_Onshore,2050,2050,0,
 RO_electrolyzer,2050,2050,0,
-SE_Battery,2050,2050,0,1
+SE_Battery,2050,2050,0,0
 SE_E_Demand,2050,2050,,
 SE_E_ENS,2050,2050,1,
 SE_Gas,2050,2050,0,
@@ -318,7 +318,7 @@ SE_Solar,2050,2050,0,
 SE_Wind_Offshore,2050,2050,0,
 SE_Wind_Onshore,2050,2050,0,
 SE_electrolyzer,2050,2050,0,
-SI_Battery,2050,2050,0,1
+SI_Battery,2050,2050,0,0
 SI_Coal,2050,2050,0,
 SI_E_Demand,2050,2050,,
 SI_E_ENS,2050,2050,1,
@@ -332,7 +332,7 @@ SI_Solar,2050,2050,0,
 SI_Wind_Offshore,2050,2050,0,
 SI_Wind_Onshore,2050,2050,0,
 SI_electrolyzer,2050,2050,0,
-SK_Battery,2050,2050,0,1
+SK_Battery,2050,2050,0,0
 SK_Coal,2050,2050,0,
 SK_E_Demand,2050,2050,,
 SK_E_ENS,2050,2050,1,
@@ -346,7 +346,7 @@ SK_Pump_Hydro_Open,2050,2050,1,1
 SK_Solar,2050,2050,0,
 SK_Wind_Onshore,2050,2050,0,
 SK_electrolyzer,2050,2050,0,
-UK_Battery,2050,2050,0,1
+UK_Battery,2050,2050,0,0
 UK_E_Demand,2050,2050,,
 UK_E_ENS,2050,2050,1,
 UK_Gas,2050,2050,0,

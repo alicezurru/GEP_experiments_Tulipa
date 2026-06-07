@@ -1910,8 +1910,8 @@ uuid = "981d1d27-644d-49a2-9326-4793e63143c3"
 version = "0.1.0"
 
 [[deps.TulipaClustering]]
-deps = ["CSV", "Clustering", "DataFrames", "Distances", "DuckDB", "DuckDB_jll", "HiGHS", "JuMP", "LinearAlgebra", "Polyhedra", "ProgressBars", "QHull", "SparseArrays", "Statistics", "TOML", "TulipaIO"]
-path = "C:/Users/zurrua/Desktop/first_attempts_tulipa/TulipaClustering.jl"
+deps = ["CSV", "Clustering", "DataFrames", "Distances", "DuckDB", "DuckDB_jll", "LinearAlgebra", "ProgressBars", "SparseArrays", "Statistics", "TOML", "TulipaIO"]
+git-tree-sha1 = "ebc04010d6b6cf84ef51d68ad9fe09b10353e83c"
 uuid = "314fac8b-c762-4aa3-9d12-851379729163"
 version = "0.5.2"
 

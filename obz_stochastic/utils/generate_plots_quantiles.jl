@@ -1,5 +1,4 @@
 # Run this only after results given from main: this is for algorithms that are not deterministic such as k-medoids and k-means
-
 using DataFrames
 using CSV
 using Plots
@@ -38,6 +37,36 @@ results_df.num_loss_of_load_e_demand = [
     row.num_loss_of_load_e_demand - hourly_lol_e
     for row in eachrow(results_df)
 ]
+hourly_lol_h2 = only(hourly_row.num_loss_of_load_h2_demand)
+
+results_df.num_loss_of_load_h2_demand = [
+    row.num_loss_of_load_h2_demand - hourly_lol_h2
+    for row in eachrow(results_df)
+]
+
+results_df.total_steps_loss_of_load = [
+    row.num_loss_of_load_e_demand + row.num_loss_of_load_h2_demand
+    for row in eachrow(results_df)
+]
+
+lol_e = only(hourly_row.loss_of_load_e_demand)
+results_df.loss_of_load_e_demand = [
+    row.loss_of_load_e_demand - lol_e
+    for row in eachrow(results_df)
+]
+
+lol_h2 = only(hourly_row.loss_of_load_h2_demand)
+results_df.loss_of_load_h2_demand = [
+    row.loss_of_load_h2_demand - lol_h2
+    for row in eachrow(results_df)
+]
+
+results_df.total_lol = [
+    row.loss_of_load_e_demand + row.loss_of_load_h2_demand
+    for row in eachrow(results_df)
+]
+
+
 
 # compute statistics we need
 results_df = combine(
@@ -61,7 +90,19 @@ results_df = combine(
     :num_loss_of_load_e_demand => (x -> quantile(x, 0.75)) => :num_loss_of_load_e_demand_q75,
     :num_loss_of_load_h2_demand => mean => :num_loss_of_load_h2_demand_mean,
     :num_loss_of_load_h2_demand => (x -> quantile(x, 0.25)) => :num_loss_of_load_h2_demand_q25,
-    :num_loss_of_load_h2_demand => (x -> quantile(x, 0.75)) => :num_loss_of_load_h2_demand_q75
+    :num_loss_of_load_h2_demand => (x -> quantile(x, 0.75)) => :num_loss_of_load_h2_demand_q75,
+    :total_steps_loss_of_load => mean => :total_steps_loss_of_load_mean,
+    :total_steps_loss_of_load => (x -> quantile(x, 0.25)) => :total_steps_loss_of_load_q25,
+    :total_steps_loss_of_load => (x -> quantile(x, 0.75)) => :total_steps_loss_of_load_q75,
+    :loss_of_load_e_demand => mean => :loss_of_load_e_demand_mean,
+    :loss_of_load_e_demand => (x -> quantile(x, 0.25)) => :loss_of_load_e_demand_q25,
+    :loss_of_load_e_demand => (x -> quantile(x, 0.75)) => :loss_of_load_e_demand_q75,
+    :loss_of_load_h2_demand => mean => :loss_of_load_h2_demand_mean,
+    :loss_of_load_h2_demand => (x -> quantile(x, 0.25)) => :loss_of_load_h2_demand_q25,
+    :loss_of_load_h2_demand => (x -> quantile(x, 0.75)) => :loss_of_load_h2_demand_q75,
+    :total_lol => mean => :total_lol_mean,
+    :total_lol => (x -> quantile(x, 0.25)) => :total_lol_q25,
+    :total_lol => (x -> quantile(x, 0.75)) => :total_lol_q75,
 )
 results_df |> CSV.write(joinpath(output_path, "stats.csv"); writeheader=true)
 
@@ -90,3 +131,18 @@ plot_values_quantiles(results_df, case_studies_df, "total_time"; savepath=joinpa
 
 @info "Plotting number of steps with lol e_demand"
 plot_values_quantiles(results_df, case_studies_df, "num_loss_of_load_e_demand"; savepath=joinpath(plot_path, "num_loss_of_load_e_demand"))
+
+@info "Plotting number of steps with lol h2_demand"
+plot_values_quantiles(results_df, case_studies_df, "num_loss_of_load_h2_demand"; savepath=joinpath(plot_path, "num_loss_of_load_h2_demand"))
+
+@info "Plotting number of steps with lol "
+plot_values_quantiles(results_df, case_studies_df, "total_steps_loss_of_load"; savepath=joinpath(plot_path, "total_steps_loss_of_load"))
+
+@info "Plotting lol e_demand"
+plot_values_quantiles(results_df, case_studies_df, "loss_of_load_e_demand"; savepath=joinpath(plot_path, "loss_of_load_e_demand"))
+
+@info "Plotting lol h2_demand"
+plot_values_quantiles(results_df, case_studies_df, "loss_of_load_h2_demand"; savepath=joinpath(plot_path, "loss_of_load_h2_demand"))
+
+@info "Plotting lol "
+plot_values_quantiles(results_df, case_studies_df, "total_lol"; savepath=joinpath(plot_path, "total_lol"))

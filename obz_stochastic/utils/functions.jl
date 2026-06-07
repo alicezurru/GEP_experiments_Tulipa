@@ -11,6 +11,7 @@ function get_solver_parameters(optimizer::Symbol)
     elseif optimizer == :Gurobi
         return Gurobi.Optimizer, Dict("OutputFlag" => 1)
     elseif optimizer == :Xpress
+        #return Xpress.Optimizer, Dict("DEFAULTALG" => 4, "CROSSOVER" => 0)
         return Xpress.Optimizer, Dict("DEFAULTALG" => 4)
     else
         return HiGHS.Optimizer, Dict()

@@ -10,3 +10,9 @@ all_profiles_df = vcat(demand, availability, inflow) # vertical concatenation
 sort!(all_profiles_df, [:year, :scenario, :profile_name, :timestep])
 CSV.write("input_data/profiles.csv", all_profiles_df; writeheader=true)
 
+df_wide = unstack(all_profiles_df, 
+    [:year, :timestep, :scenario],
+    :profile_name,
+    :value
+)
+CSV.write("input_data/profiles_wide.csv", df_wide; writeheader=true)

@@ -4,7 +4,7 @@ using CSV
 cd(@__DIR__)
 
 function prepare_inflow_data()
-    input_data_file = "C:Inflow_timeseries_raw/"
+    input_data_file = "Inflow_timeseries_raw/"
     profiles_file = input_data_file * "assets_profiles.csv"
     df_profiles = CSV.read(profiles_file, DataFrame)
     n_timesteps = 8760
@@ -41,7 +41,7 @@ function prepare_inflow_data()
         "UK" => ["UK00"]
     )
     prefixes = collect(keys(country_map))
-    n_scenarios = 10
+    n_scenarios = 5
     profiles_list_full = DataFrame[]
     scenario_cols = ["WS" * lpad(string(j), 2, '0') for j in 1:36] # i take them all to compute the maximum across the 36 scenarios
 
