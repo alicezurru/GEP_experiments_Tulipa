@@ -1,4 +1,4 @@
-obz_stochastic/create_more_scenarios/input_data/
+obz_stochastic/create_more_scenarios
 
 obz_stochastic/input_tables
 
@@ -7,3 +7,5 @@ obz_stochastic/input_tables_2cap
 obz_stochastic/input_tables_noens
 
 obz_stochastic/input_tables_noens_2cap
+
+obz_stochastic/outputs/0_HourlyBenchmark_20vlol_3cap"
