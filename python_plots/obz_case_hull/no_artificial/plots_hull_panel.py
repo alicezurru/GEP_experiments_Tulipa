@@ -34,6 +34,7 @@ VALUE_MAP = {
     "num_loss_of_load_e_demand": "Number of timesteps with electricity loss of load",
     "num_loss_of_load_h2_demand": "Number of timesteps with hydrogen loss of load",
     "total_steps_loss_of_load" : "Total number of timesteps with loss of load",
+    "total_lol" : "Total loss of load (MW)",
     "time_to_cluster": "Time to cluster (s)",
     "time_to_create": "Time to create (s)",
     "time_to_solve": "Time to solve (s)",
@@ -83,6 +84,21 @@ def prepare_results(results_df, case_df):
         + results_df.num_loss_of_load_e_demand
     )
 
+    results_df["loss_of_load_e_demand"] = (
+        results_df.loss_of_load_e_demand
+        - hourly.loss_of_load_e_demand
+    )
+
+    results_df["loss_of_load_h2_demand"] = (
+        results_df.loss_of_load_h2_demand
+        - hourly.loss_of_load_h2_demand
+    )
+
+    results_df["total_lol"] = (
+        results_df.loss_of_load_h2_demand
+        + results_df.loss_of_load_e_demand
+    )
+
 
     return results_df
 
@@ -122,7 +138,7 @@ def plot_values_grid(results_sets, value, savepath):
     rp_vals = sorted(v for v in results_sets[COLS[0]].rp.unique() if v != 1)
     rp_pos = list(range(len(rp_vals)))
     rp_to_pos = dict(zip(rp_vals, rp_pos))
-    values = ["rel_regret", "total_steps_loss_of_load"]
+    values = ["rel_regret", "total_lol"]
 
     fig, axes = plt.subplots(
         1, 2,
@@ -227,7 +243,7 @@ def main():
     plot_values_grid(
     results,
     None,
-    plots_dir / "combined_plot.png",
+    plots_dir / "combined_plot2.png",
     )
 
 if __name__ == "__main__":

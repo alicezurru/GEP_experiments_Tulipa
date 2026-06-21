@@ -2,7 +2,7 @@
 
 [simulation]
 input_data = "input_tables/"
-n_runs = 1
+n_runs = 10
 
 [clustering]
 heuristic_distance = false

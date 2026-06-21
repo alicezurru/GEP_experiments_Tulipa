@@ -33,6 +33,7 @@ VALUE_MAP = {
     "num_loss_of_load_e_demand": "Number of timesteps with electricity loss of load",
     "num_loss_of_load_h2_demand": "Number of timesteps with hydrogen loss of load",
     "total_steps_loss_of_load" : "Total number of timesteps with loss of load",
+    "total_lol" : "Total loss of load (GWh)",
     "time_to_cluster": "Time to cluster (s)",
     "time_to_create": "Time to create (s)",
     "time_to_solve": "Time to solve (s)",
@@ -42,6 +43,7 @@ VALUE_MAP = {
 YLIM_MAP = {
     "rel_regret": (0.0, 0.4),
     "total_steps_loss_of_load": (-100.0, 700),
+    "total_lol": (-100.0, 2000),
 }
 
 # ============================================================
@@ -80,6 +82,20 @@ def prepare_results(results_df, case_df):
     results_df["total_steps_loss_of_load"] = (
         results_df.num_loss_of_load_h2_demand
         + results_df.num_loss_of_load_e_demand
+    )
+    results_df["loss_of_load_e_demand"] = (
+        results_df.loss_of_load_e_demand
+        - hourly.loss_of_load_e_demand
+    )
+
+    results_df["loss_of_load_h2_demand"] = (
+        results_df.loss_of_load_h2_demand
+        - hourly.loss_of_load_h2_demand
+    )
+
+    results_df["total_lol"] = (
+        results_df.loss_of_load_h2_demand
+        + results_df.loss_of_load_e_demand
     )
 
     return results_df

@@ -28,7 +28,7 @@ COLOR_MAP = {
     ("k_means", "per_scenario"): "gold",
     ("k_means", "cross_scenario"): "orange",
     ("k_medoids", "per_scenario"): "blue",
-    ("k_medoids", "cross_scenario"): "purple",
+    ("k_medoids", "cross_scenario"): "#6a0dad",
 }
 
 VALUE_MAP = {
@@ -36,6 +36,7 @@ VALUE_MAP = {
     "num_loss_of_load_e_demand": "Number of timesteps with electricity loss of load",
     "num_loss_of_load_h2_demand": "Number of timesteps with hydrogen loss of load",
     "total_steps_loss_of_load" : "Total number of timesteps with loss of load",
+    "total_lol" : "Total loss of load (GWh)",
     "time_to_cluster": "Time to cluster (s)",
     "time_to_create": "Time to create (s)",
     "time_to_solve": "Time to solve (s)",
@@ -128,6 +129,8 @@ def plot_values_quantiles_grid(stats_dict, case_df, value, savepath):
             ax.set_ylim(0.0, 0.4)
         if value == "total_steps_loss_of_load":
             ax.set_ylim(-100, 700)
+        if value == "total_lol":
+            ax.set_ylim(-100, 2000)
 
 
 
@@ -136,7 +139,7 @@ def plot_values_quantiles_grid(stats_dict, case_df, value, savepath):
     fig.supylabel(VALUE_MAP[value], fontsize=17, x=0.03)
 
     legend_handles = [
-        Line2D([0], [0], color="purple", marker="o", lw=2,
+        Line2D([0], [0], color="#6a0dad", marker="o", lw=2,
                markeredgecolor="black", label="K-medoids"),
     ]
 

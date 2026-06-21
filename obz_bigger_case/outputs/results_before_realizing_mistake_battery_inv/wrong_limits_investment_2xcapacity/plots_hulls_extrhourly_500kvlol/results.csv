@@ -1,0 +1,5 @@
+base_name,rp,solver,time_to_cluster,time_to_read,time_to_create,time_to_solve,time_to_save,objective_value,termination_status,num_constraints,num_variables,time_to_resolve_benchmark,objective_value_resolve_benchmark,termination_status_resolve_benchmark,num_loss_of_load_e_demand,num_loss_of_load_h2_demand
+0_HourlyBenchmark,1,Xpress,0.0,21.6982824,86.4757788,384.0831754,23.2280908,4.9976368184033203e8,OPTIMAL,6824040,4748143,0.0,0.0,,28,5
+convex_cross,4,Xpress,1.9495431,0.5385891,2.9877542,5.9929522,0.5513107,2.198052297318617e11,OPTIMAL,112713,64898,91.8532647,8.555278974624782e8,OPTIMAL,25,77
+convex_cross,8,Xpress,2.8897438,0.7529113,4.4031117,13.4380033,0.3263185,1.495663763660785e11,OPTIMAL,173961,112418,51.1466125,8.583781531418775e8,OPTIMAL,88,11
+convex_cross,12,Xpress,4.6122934,0.962218,5.8204134,25.8780213,0.4629865,9.309645757199109e10,OPTIMAL,235209,159938,55.0587815,7.914246072420965e8,OPTIMAL,45,7

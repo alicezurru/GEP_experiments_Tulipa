@@ -237,8 +237,8 @@ def plot_combined_relregret_lol(stats_df, case_df, savepath):
     ax1.set_title("Relative regret", fontsize=16)
 
     # --- RIGHT: TOTAL LOSS OF LOAD ---
-    plot_panel(ax2, stats_df, case_df, "total_steps_loss_of_load", "k_medoids", rp_to_pos)
-    ax2.set_title("Total number of timesteps with loss of load", fontsize=16)
+    plot_panel(ax2, stats_df, case_df, "total_lol", "k_medoids", rp_to_pos)
+    ax2.set_title("Total loss of load (MW)", fontsize=16)
 
     # --- SHARED X AXIS ---
     for ax in axes:
@@ -319,7 +319,7 @@ def main():
     plot_combined_relregret_lol(
     stats,
     case_df,
-    plots_dir / "combined_relregret_lol.png",
+    plots_dir / "combined_relregret_lol2.png",
     )
 
 
