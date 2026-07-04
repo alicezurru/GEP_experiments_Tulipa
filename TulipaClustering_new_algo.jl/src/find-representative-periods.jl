@@ -214,13 +214,15 @@ function find_representative_periods(
         layout,
     )
 
+    weight_type_to_add_rps = weight_type != :dirac ? weight_type : :convex
+
     # 4.3 Now let's compute the weights to choose which rps to add on top of the others
     fit_rep_period_weights!(
         weight_matrix,
         clustering_matrix,
         rp_matrix,
         Int64(i_rp);
-        weight_type,
+        weight_type_to_add_rps,
         tol,
         weight_fitting_kwargs...,
     )

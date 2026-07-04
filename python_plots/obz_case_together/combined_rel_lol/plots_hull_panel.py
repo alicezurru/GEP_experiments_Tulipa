@@ -105,9 +105,10 @@ def prepare_results(results_df, case_df):
 # Panel plotting (both methods inside)
 # ============================================================
 
-def plot_panel(ax, df, stats_df, case_df, value, rp_to_pos):
+def plot_panel(ax, df, df_dir, stats_df, case_df, value, rp_to_pos):
 
     df = df[df.base_name != "0_HourlyBenchmark"]
+    df_dir = df_dir[df_dir.base_name != "0_HourlyBenchmark"]
 
     for method in METHODS:
         df_m = df[df.method == method]
@@ -127,7 +128,29 @@ def plot_panel(ax, df, stats_df, case_df, value, rp_to_pos):
                 markeredgecolor="black",
                 markeredgewidth=0.5,
             )
-        
+    
+    for method in METHODS:
+        df_m = df_dir[df_dir.method == method]
+
+        for stoch, g in df_m.groupby("stochastic_method"):
+            g = g.sort_values("rp")
+            key = f"{method}_{stoch}"
+            xpos = [rp_to_pos[rp] for rp in g.rp]
+
+            ax.plot(
+                xpos,
+                g[value],
+                color=COLOR_MAP[key],
+                lw=2,
+                linestyle=":",   # 👈 dotted
+                marker=MARKER_MAP[stoch],
+                ms=6,
+                markeredgecolor="black",
+                markeredgewidth=0.5,
+                alpha=0.9,       # optional (helps readability)
+            )
+
+
     df_stats = stats_df.merge(case_df, on="base_name")
     df_stats = df_stats[df_stats.base_name != "0_HourlyBenchmark"]
     df_stats = df_stats[df_stats.method == "k_medoids"]
@@ -253,7 +276,7 @@ def plot_panel(ax, df, stats_df, case_df, value, rp_to_pos):
 #     fig.savefig(savepath, dpi=300, bbox_inches="tight")
 #     plt.close(fig)
 
-def plot_two_values(results_sets, stats_sets, case_df, savepath):
+def plot_two_values(results_sets, results_dir_sets, stats_sets, case_df, savepath):
 
     values = ["rel_regret", "total_lol"]
 
@@ -273,9 +296,10 @@ def plot_two_values(results_sets, stats_sets, case_df, savepath):
         ax = axes[i]
 
         df = results_sets[col]
+        df_dir = results_dir_sets[col] 
         stats_df = stats_sets[col]
 
-        plot_panel(ax, df, stats_df, case_df, value, rp_to_pos)
+        plot_panel(ax, df, df_dir, stats_df, case_df, value, rp_to_pos)
 
         # axis formatting
         ax.set_xticks(rp_pos)
@@ -303,6 +327,8 @@ def plot_two_values(results_sets, stats_sets, case_df, savepath):
         Line2D([0], [0], color="#9e9e9e", marker="o", lw=2, label="Convex hull"),
         Line2D([0], [0], color="#98df8a", marker="o", lw=2, label="Bounded conical hull"),
         Line2D([0], [0], color="#6a0dad", marker="o", lw=2, label="K-medoids"),
+        Line2D([0], [0], color="#9e9e9e", marker="o", lw=2, linestyle=":", label="Convex hull (Dirac weights)"),
+        Line2D([0], [0], color="#98df8a", marker="o", lw=2, linestyle=":", label="Bounded conical hull (Dirac weights)"),
     ]
 
     fig.legend(
@@ -343,9 +369,15 @@ def main():
     results = {
         "NO ARTIFICIAL": pd.read_csv(SCRIPT_DIR / "results.csv"),
     }
+    
+    results_dir = {
+        "NO ARTIFICIAL": pd.read_csv(SCRIPT_DIR / "results_dir.csv"),
+    }
+
 
     for k in results:
         results[k] = prepare_results(results[k], case_df)
+        results_dir[k] = prepare_results(results_dir[k], case_df)
 
     
     # for value in VALUE_MAP:
@@ -359,6 +391,7 @@ def main():
     
     plot_two_values(
         results,
+        results_dir,
         stats_sets,
         case_df,
         plots_dir / "regret_vs_lol.png",

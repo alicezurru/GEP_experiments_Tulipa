@@ -130,61 +130,61 @@ function main()
         output_folder = joinpath(@__DIR__, "outputs", base_name, string(solver))
         mkpath(output_folder)
 
-        # @info "Solving the model and saving the solution for the base case study (0_HourlyBenchmark) with $solver"
-        # time_to_solve = @elapsed TEM.solve_model!(energy_problem_benchmark)
-        # if energy_problem_benchmark.termination_status == JuMP.INFEASIBLE
-        #     compute_conflict!(energy_problem_benchmark.model)
-        #     iis_model, reference_map = copy_conflict(energy_problem_benchmark.model)
-        #     print(iis_model)
-        # end
-        # time_to_save = @elapsed TEM.save_solution!(energy_problem_benchmark)
-        # TEM.export_solution_to_csv_files(output_folder, energy_problem_benchmark)
+        @info "Solving the model and saving the solution for the base case study (0_HourlyBenchmark) with $solver"
+        time_to_solve = @elapsed TEM.solve_model!(energy_problem_benchmark)
+        if energy_problem_benchmark.termination_status == JuMP.INFEASIBLE
+            compute_conflict!(energy_problem_benchmark.model)
+            iis_model, reference_map = copy_conflict(energy_problem_benchmark.model)
+            print(iis_model)
+        end
+        time_to_save = @elapsed TEM.save_solution!(energy_problem_benchmark)
+        TEM.export_solution_to_csv_files(output_folder, energy_problem_benchmark)
 
-        # var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
-        # flow_ens = filter(row ->
-        #         occursin("ens", lowercase(row.from_asset)),
-        #         var_flow_df
-        #         )
-        # flow_smr_ccs = filter(row ->
-        #         occursin("smr", lowercase(row.from_asset)),
-        #         var_flow_df
-        #         )
+        var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
+        flow_ens = filter(row ->
+                occursin("ens", lowercase(row.from_asset)),
+                var_flow_df
+                )
+        flow_smr_ccs = filter(row ->
+                occursin("smr", lowercase(row.from_asset)),
+                var_flow_df
+                )
 
-        # # count steps with loss of load
-        # n_lol_ens = count(row -> row.solution > 1e-8, eachrow(flow_ens))
-        # n_lol_smr_cca = count(row -> row.solution > 1e-8, eachrow(flow_smr_ccs))
-        # lol_ens = sum(flow_ens.solution)
-        # lol_smr = sum(flow_smr_ccs.solution)
+        # count steps with loss of load
+        n_lol_ens = count(row -> row.solution > 1e-8, eachrow(flow_ens))
+        n_lol_smr_cca = count(row -> row.solution > 1e-8, eachrow(flow_smr_ccs))
+        lol_ens = sum(flow_ens.solution)
+        lol_smr = sum(flow_smr_ccs.solution)
 
-        # new_results_row = (
-        #     base_name=base_name,
-        #     rp=1,
-        #     solver=solver,
-        #     time_to_cluster=0.0,
-        #     time_to_read=time_to_read,
-        #     time_to_create=time_to_create,
-        #     time_to_solve=time_to_solve,
-        #     time_to_save=time_to_save,
-        #     objective_value=energy_problem_benchmark.objective_value,
-        #     termination_status=string(energy_problem_benchmark.termination_status),
-        #     num_constraints=JuMP.num_constraints(
-        #         energy_problem_benchmark.model;
-        #         count_variable_in_set_constraints=false,
-        #     ),
-        #     num_variables=JuMP.num_variables(energy_problem_benchmark.model),
-        #     time_to_resolve_benchmark=0.0,
-        #     objective_value_resolve_benchmark=0.0,
-        #     termination_status_resolve_benchmark="",
-        #     reduced_num_lol_e=0,
-        #     reduced_num_lol_h2=0,
-        #     reduced_lol_e=0.0,
-        #     reduced_lol_h2=0.0,
-        #     num_loss_of_load_e_demand=n_lol_ens,
-        #     num_loss_of_load_h2_demand=n_lol_smr_cca,
-        #     loss_of_load_e_demand=lol_ens,
-        #     loss_of_load_h2_demand=lol_smr,
-        # )
-        # push!(results_df, new_results_row)
+        new_results_row = (
+            base_name=base_name,
+            rp=1,
+            solver=solver,
+            time_to_cluster=0.0,
+            time_to_read=time_to_read,
+            time_to_create=time_to_create,
+            time_to_solve=time_to_solve,
+            time_to_save=time_to_save,
+            objective_value=energy_problem_benchmark.objective_value,
+            termination_status=string(energy_problem_benchmark.termination_status),
+            num_constraints=JuMP.num_constraints(
+                energy_problem_benchmark.model;
+                count_variable_in_set_constraints=false,
+            ),
+            num_variables=JuMP.num_variables(energy_problem_benchmark.model),
+            time_to_resolve_benchmark=0.0,
+            objective_value_resolve_benchmark=0.0,
+            termination_status_resolve_benchmark="",
+            reduced_num_lol_e=0,
+            reduced_num_lol_h2=0,
+            reduced_lol_e=0.0,
+            reduced_lol_h2=0.0,
+            num_loss_of_load_e_demand=n_lol_ens,
+            num_loss_of_load_h2_demand=n_lol_smr_cca,
+            loss_of_load_e_demand=lol_ens,
+            loss_of_load_h2_demand=lol_smr,
+        )
+        push!(results_df, new_results_row)
 
 
     end

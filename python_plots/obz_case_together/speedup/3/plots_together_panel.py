@@ -221,6 +221,16 @@ def plot_panel(ax, df, stats_dict, case_df, value, rp_to_pos, col_name):
             va="bottom",
             ha="right",
         )
+    if value == "total_lol":
+            bm_y = 0.0
+
+            ax.axhline(
+                y=bm_y,
+                color="grey",
+                linestyle=":",
+                linewidth=2,
+                alpha=0.8,
+            )
 
 
 
@@ -259,7 +269,7 @@ def plot_values_grid(results_sets, stats_sets, case_df, value, savepath):
         for ax in axes:
             ax.set_ylim(ymin, ymax)
     if value in YLIM_MAP:
-        xmin, xmax = (0.0,50)
+        xmin, xmax = (0.0,80)
         for ax in axes:
             ax.set_xlim(xmin, xmax)
     
@@ -317,7 +327,7 @@ def main():
 
         
     results_sets = {
-        "REFERENCE METHODS": pd.read_csv(SCRIPT_DIR / "results_hull.csv"),
+        "REFERENCE METHODS": pd.read_csv(SCRIPT_DIR / "results_hulld.csv"),
         "DAWC": pd.read_csv(SCRIPT_DIR / "results_d.csv"),
         "APGS": pd.read_csv(SCRIPT_DIR / "results_hapgs.csv"),
     }
