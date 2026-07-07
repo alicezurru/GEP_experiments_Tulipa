@@ -5,7 +5,7 @@ from matplotlib.lines import Line2D
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-COLS = ["REFERENCE METHODS","DAWC","APGS"]
+COLS = ["NO ARTIFICIAL","DAWC","APGS"]
 
 METHODS = ["convex_hull", "convex_hull_with_null"]
 
@@ -151,7 +151,7 @@ def plot_panel(ax, results_dict, stats_dict, case_df, value, rp_to_pos, col_name
 
     
     # ---- DIRAC K-MEDOIDS (ONLY FIRST COLUMN) ----
-    if col_name == "REFERENCE METHODS" and "dirac" in stats_dict:
+    if col_name == "NO ARTIFICIAL" and "dirac" in stats_dict:
 
         df_dir = stats_dict["dirac"].merge(case_df, on="base_name")
         df_dir = df_dir[df_dir.base_name != "0_HourlyBenchmark"]
@@ -311,7 +311,7 @@ def plot_values_grid(results_sets, stats_sets, case_df, value, savepath):
 def main():
     
     stats_sets = {
-        "REFERENCE METHODS": {
+        "NO ARTIFICIAL": {
             "dirac": pd.read_csv(SCRIPT_DIR / "stats_dir.csv"),
         },
         "DAWC" : {
@@ -328,7 +328,7 @@ def main():
     case_df = pd.read_csv(SCRIPT_DIR / "case-studies-info.csv")
 
     results_sets = {
-    "REFERENCE METHODS": {
+    "NO ARTIFICIAL": {
         "convex": pd.read_csv(SCRIPT_DIR / "results_con.csv"),
         "dirac": pd.read_csv(SCRIPT_DIR / "results_dir.csv"),
     },
