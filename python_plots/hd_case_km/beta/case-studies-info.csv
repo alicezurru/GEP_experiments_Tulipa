@@ -1,9 +1,0 @@
-base_name,period_duration,method,distance,weight_type,niters,learning_rate,stochastic_method,run_case
-kmeans_cross_dirac,1,k_means,Euclidean,dirac,2000,0.1,cross_scenario,false
-kmeans_per_dirac,1,k_means,Euclidean,dirac,2000,0.1,per_scenario,false
-kmedoids_cross_dirac,1,k_medoids,Euclidean,dirac,2000,0.1,cross_scenario,false
-kmedoids_per_dirac,1,k_medoids,Euclidean,dirac,2000,0.1,per_scenario,false
-kmeans_cross_convex,24,k_means,Euclidean,convex,2000,0.001,cross_scenario,true
-kmeans_per_convex,24,k_means,Euclidean,convex,2000,0.001,per_scenario,true
-kmedoids_cross_convex,24,k_medoids,Euclidean,convex,2000,0.001,cross_scenario,true
-kmedoids_per_convex,24,k_medoids,Euclidean,convex,2000,0.001,per_scenario,true
