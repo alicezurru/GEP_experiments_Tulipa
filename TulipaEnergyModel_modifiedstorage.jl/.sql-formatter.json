@@ -1,9 +1,0 @@
-{
-  "dataTypeCase": "lower",
-  "functionCase": "lower",
-  "keywordCase": "lower",
-  "language": "postgresql",
-  "logicalOperatorNewline": "before",
-  "newlineBeforeSemicolon": true,
-  "tabWidth": 4
-}
