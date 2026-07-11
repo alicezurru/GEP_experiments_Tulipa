@@ -10,6 +10,10 @@ n_runs = 1
 [clustering]
 use_ratio = false
 heuristic_distance = false
+use_apgs = false
+perc_initial_clustering = 0.5 # only important if use_apgs = true
+beta = 0.0
+alpha = 0.0
 
 [extreme_periods]
 add_worst_every_hour = false

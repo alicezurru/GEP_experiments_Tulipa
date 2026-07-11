@@ -36,6 +36,10 @@ config = TOML.parsefile("config.toml")
 input_data_path = config["simulation"]["input_data"]
 use_ratio = config["clustering"]["use_ratio"]
 heuristic_distance = config["clustering"]["heuristic_distance"]
+use_apgs = config["clustering"]["use_apgs"]
+perc_initial_clustering = config["clustering"]["perc_initial_clustering"]
+beta = config["clustering"]["beta"]
+alpha = config["clustering"]["alpha"]
 profiles_type = config["simulation"]["profiles_type"]
 n_runs = config["simulation"]["n_runs"]
 add_worst_every_hour = config["extreme_periods"]["add_worst_every_hour"]
@@ -200,16 +204,23 @@ function main()
 
         weight_fitting_kwargs = Dict(
             :learning_rate => learning_rate,
-            :niters => niters
+            :niters => niters,
+            :alpha => alpha,
+            :beta => beta,
         )
         if method ∉ [:k_means, :k_medoids]
             clustering_kwargs = Dict(
                 :learning_rate => learning_rate,
                 :niters => niters,
                 :heuristic_distance => heuristic_distance,
+                :use_apgs => use_apgs,
+                :perc_initial_clustering => perc_initial_clustering
             )
         else
-            clustering_kwargs = Dict{Symbol,Any}()
+            clustering_kwargs = Dict(
+                :use_apgs => use_apgs,
+                :perc_initial_clustering => perc_initial_clustering
+            )
         end
 
         if !run_case
@@ -414,41 +425,6 @@ function main()
                                 AND d.profile_name = 'demand';
                                     ")
                     end
-                    # elseif stochastic_method == :per_and_cross_scenario # new method
-                    #     clustering_kwargs = Dict(
-                    #         :add_cross => true,
-                    #         :n_scenarios => n_scenarios,
-                    #         :tol_skip => 0.05
-                    #     )
-                    #     layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
-
-                    #     time_to_cluster = @elapsed TC.cluster!(
-                    #         connection,
-                    #         period_duration,
-                    #         round(Int, rp / n_scenarios);
-                    #         method=method,
-                    #         distance=distance,
-                    #         weight_type=weight_type,
-                    #         layout=layout,
-                    #         clustering_kwargs,
-                    #         weight_fitting_kwargs
-                    #     )
-                    #     if use_ratio == true
-                    #         DuckDB.query(connection,
-                    #             "UPDATE profiles_rep_periods AS x
-                    #                 SET value =
-                    #                     CASE
-                    #                         WHEN x.profile_name = 'demand' THEN x.value
-                    #                         ELSE x.value * d.value
-                    #                     END
-                    #                 FROM profiles_rep_periods AS d
-                    #                 WHERE d.timestep   = x.timestep
-                    #                 AND d.rep_period       = x.rep_period
-                    #                 AND d.year       = x.year
-                    #                 AND d.scenario   = x.scenario
-                    #                 AND d.profile_name = 'demand';
-                    #                     ")
-                    #     end
 
 
                 else
