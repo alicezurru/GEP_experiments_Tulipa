@@ -42,6 +42,8 @@ add_worst_sum = config["extreme_periods"]["add_worst_sum"]
 if add_best_every_hour && !add_worst_every_hour
     error("You can add best only when also worst is added")
 end
+one_for_all_scenarios = config["extreme_periods"]["one_for_all_scenarios"]
+
 
 case_studies_info = CSV.read(
     "case-studies-info.csv",
@@ -61,7 +63,6 @@ case_studies_info = CSV.read(
 
 solvers = [:Xpress] #[:HiGHS, :Gurobi]
 representative_periods = [10, 20, 40, 60, 80, 100, 150, 225, 300]
-representative_periods = [300]
 enable_names = true
 direct_model = false
 results_df = DataFrame(;
@@ -130,61 +131,61 @@ function main()
         output_folder = joinpath(@__DIR__, "outputs", base_name, string(solver))
         mkpath(output_folder)
 
-        @info "Solving the model and saving the solution for the base case study (0_HourlyBenchmark) with $solver"
-        time_to_solve = @elapsed TEM.solve_model!(energy_problem_benchmark)
-        if energy_problem_benchmark.termination_status == JuMP.INFEASIBLE
-            compute_conflict!(energy_problem_benchmark.model)
-            iis_model, reference_map = copy_conflict(energy_problem_benchmark.model)
-            print(iis_model)
-        end
-        time_to_save = @elapsed TEM.save_solution!(energy_problem_benchmark)
-        TEM.export_solution_to_csv_files(output_folder, energy_problem_benchmark)
+        # @info "Solving the model and saving the solution for the base case study (0_HourlyBenchmark) with $solver"
+        # time_to_solve = @elapsed TEM.solve_model!(energy_problem_benchmark)
+        # if energy_problem_benchmark.termination_status == JuMP.INFEASIBLE
+        #     compute_conflict!(energy_problem_benchmark.model)
+        #     iis_model, reference_map = copy_conflict(energy_problem_benchmark.model)
+        #     print(iis_model)
+        # end
+        # time_to_save = @elapsed TEM.save_solution!(energy_problem_benchmark)
+        # TEM.export_solution_to_csv_files(output_folder, energy_problem_benchmark)
 
-        var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
-        flow_ens = filter(row ->
-                occursin("ens", lowercase(row.from_asset)),
-                var_flow_df
-                )
-        flow_smr_ccs = filter(row ->
-                occursin("smr", lowercase(row.from_asset)),
-                var_flow_df
-                )
+        # var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
+        # flow_ens = filter(row ->
+        #         occursin("ens", lowercase(row.from_asset)),
+        #         var_flow_df
+        #         )
+        # flow_smr_ccs = filter(row ->
+        #         occursin("smr", lowercase(row.from_asset)),
+        #         var_flow_df
+        #         )
 
-        # count steps with loss of load
-        n_lol_ens = count(row -> row.solution > 1e-8, eachrow(flow_ens))
-        n_lol_smr_cca = count(row -> row.solution > 1e-8, eachrow(flow_smr_ccs))
-        lol_ens = sum(flow_ens.solution)
-        lol_smr = sum(flow_smr_ccs.solution)
+        # # count steps with loss of load
+        # n_lol_ens = count(row -> row.solution > 1e-8, eachrow(flow_ens))
+        # n_lol_smr_cca = count(row -> row.solution > 1e-8, eachrow(flow_smr_ccs))
+        # lol_ens = sum(flow_ens.solution)
+        # lol_smr = sum(flow_smr_ccs.solution)
 
-        new_results_row = (
-            base_name=base_name,
-            rp=1,
-            solver=solver,
-            time_to_cluster=0.0,
-            time_to_read=time_to_read,
-            time_to_create=time_to_create,
-            time_to_solve=time_to_solve,
-            time_to_save=time_to_save,
-            objective_value=energy_problem_benchmark.objective_value,
-            termination_status=string(energy_problem_benchmark.termination_status),
-            num_constraints=JuMP.num_constraints(
-                energy_problem_benchmark.model;
-                count_variable_in_set_constraints=false,
-            ),
-            num_variables=JuMP.num_variables(energy_problem_benchmark.model),
-            time_to_resolve_benchmark=0.0,
-            objective_value_resolve_benchmark=0.0,
-            termination_status_resolve_benchmark="",
-            reduced_num_lol_e=0,
-            reduced_num_lol_h2=0,
-            reduced_lol_e=0.0,
-            reduced_lol_h2=0.0,
-            num_loss_of_load_e_demand=n_lol_ens,
-            num_loss_of_load_h2_demand=n_lol_smr_cca,
-            loss_of_load_e_demand=lol_ens,
-            loss_of_load_h2_demand=lol_smr,
-        )
-        push!(results_df, new_results_row)
+        # new_results_row = (
+        #     base_name=base_name,
+        #     rp=1,
+        #     solver=solver,
+        #     time_to_cluster=0.0,
+        #     time_to_read=time_to_read,
+        #     time_to_create=time_to_create,
+        #     time_to_solve=time_to_solve,
+        #     time_to_save=time_to_save,
+        #     objective_value=energy_problem_benchmark.objective_value,
+        #     termination_status=string(energy_problem_benchmark.termination_status),
+        #     num_constraints=JuMP.num_constraints(
+        #         energy_problem_benchmark.model;
+        #         count_variable_in_set_constraints=false,
+        #     ),
+        #     num_variables=JuMP.num_variables(energy_problem_benchmark.model),
+        #     time_to_resolve_benchmark=0.0,
+        #     objective_value_resolve_benchmark=0.0,
+        #     termination_status_resolve_benchmark="",
+        #     reduced_num_lol_e=0,
+        #     reduced_num_lol_h2=0,
+        #     reduced_lol_e=0.0,
+        #     reduced_lol_h2=0.0,
+        #     num_loss_of_load_e_demand=n_lol_ens,
+        #     num_loss_of_load_h2_demand=n_lol_smr_cca,
+        #     loss_of_load_e_demand=lol_ens,
+        #     loss_of_load_h2_demand=lol_smr,
+        # )
+        # push!(results_df, new_results_row)
 
 
     end
@@ -226,11 +227,6 @@ function main()
 
             for n in 1:n_runs
                 Random.seed!(n)
-                # if rp == 150
-                #     Random.seed!(n+100)
-                #     println("ok changed")
-                # end
-
                 connection = DuckDB.DBInterface.connect(DuckDB.DB)
                 TIO.read_csv_folder(connection, input_data_path)
                 # let us add extreme periods 
@@ -250,10 +246,17 @@ function main()
                     profiles = string.(unique(df_profiles.profile_name))
                     # profiles = filter(p -> !occursin("demand", lowercase(p)), profiles)
                     # println(length(profiles))
-                    create_init_rps_daily(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    if !one_for_all_scenarios
+                        create_init_rps_daily(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    else
+                        create_init_rps_daily_ofas(connection, period_duration, profiles)
+                    end
                 end
 
                 if stochastic_method == :per_scenario
+                    if one_for_all_scenarios
+                        error("We can select only one artificial period per scenario only if we are using cross")
+                    end
                     layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
                     if add_worst_every_hour || add_worst_sum
                         init_rps_df = TIO.get_table(connection, "init_rps")
@@ -305,7 +308,7 @@ function main()
                             weight_fitting_kwargs
                         )
                     else
-                        time_to_cluster = @elapsed TC.cluster!(
+                        @time time_to_cluster = @elapsed TC.cluster!(
                             connection,
                             period_duration,
                             rp;
@@ -321,6 +324,7 @@ function main()
                 else
                     error("Unknown stochastic method: $stochastic_method")
                 end
+                println("Clustering time ", time_to_cluster)
                 df_profiles_rp = TIO.get_table(connection, "profiles_rep_periods")
                 df_rp_mapping = TIO.get_table(connection, "rep_periods_mapping")
                 df_rep_periods_data = TIO.get_table(connection, "rep_periods_data")
@@ -334,7 +338,7 @@ function main()
 
                 TEM.populate_with_defaults!(connection)
 
-                time_to_read = @elapsed energy_problem = TEM.EnergyProblem(connection)
+                time_to_read = @elapsed energy_problem = TEM.EnergyProblem(connection; storage_Dirac=true, max_rp_storage=0)
 
                 for solver in solvers
                     optimizer, parameters = get_solver_parameters(solver)
@@ -346,6 +350,8 @@ function main()
                         optimizer_parameters=parameters,
                         model_file_name="",
                         enable_names=enable_names,
+                        storage_Dirac=true,
+                        max_rp_storage=0
                     )
 
                     output_folder = joinpath(@__DIR__, "outputs", case_name, string(solver))
@@ -358,8 +364,44 @@ function main()
                         # iis_model, reference_map = JuMP.copy_conflict(energy_problem.model)
                         # print(iis_model)
                         println("Infeasible - skipped")
+                        new_results_row = (
+                            base_name=base_name,
+                            rp=rp,
+                            solver=solver,
+                            time_to_cluster=time_to_cluster,
+                            time_to_read=time_to_read,
+                            time_to_create=time_to_create,
+                            time_to_solve=0.0,
+                            time_to_save=0.0,
+                            objective_value=0.0,
+                            termination_status=string(energy_problem.termination_status),
+                            reduced_num_lol_e=0,
+                            reduced_num_lol_h2=0,
+                            reduced_lol_e=0.0,
+                            reduced_lol_h2=0.0,
+                            num_constraints=JuMP.num_constraints(
+                                energy_problem.model;
+                                count_variable_in_set_constraints=false,
+                            ),
+                            num_variables=JuMP.num_variables(energy_problem.model),
+                            time_to_resolve_benchmark=0.0,
+                            objective_value_resolve_benchmark=0.0,
+                            termination_status_resolve_benchmark="",
+                            num_loss_of_load_e_demand=0,
+                            num_loss_of_load_h2_demand=0,
+                            loss_of_load_e_demand=0.0,
+                            loss_of_load_h2_demand=0.0,
+                        )
+                        push!(results_df, new_results_row)
+
+                        CSV.write(
+                            "outputs/results_partial.csv",
+                            results_df;
+                            writeheader=true
+                        )
                         break
                     end
+                    println("Solving time ", time_to_solve)
                     time_to_save = @elapsed TEM.save_solution!(energy_problem)
 
                     TEM.export_solution_to_csv_files(output_folder, energy_problem)

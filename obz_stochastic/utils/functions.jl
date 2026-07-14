@@ -374,6 +374,146 @@ function create_init_rps_daily(connection, period_duration, profiles)
     )
 end
 
+function create_init_rps_daily_ofas(connection, period_duration, profiles)
+    profiles_str = join(profiles, ", ")
+
+    DuckDB.query(
+        connection,
+        """
+        CREATE TABLE init_rps AS
+        WITH base AS (
+            SELECT
+                year,
+                scenario,
+                timestep,
+                CAST(((timestep - 1) % $period_duration) + 1 AS INTEGER) AS hour,
+                CAST(FLOOR((timestep - 1) / $period_duration) + 1 AS INTEGER) AS day,
+                profile_name,
+                value,
+                split_part(profile_name, '_', 1) AS location
+            FROM profiles_wide
+            UNPIVOT (
+                value FOR profile_name IN ($profiles_str)
+            )
+        ),
+
+        demand AS (
+            SELECT
+                year,
+                scenario,
+                location,
+                day,
+                hour,
+                profile_name,
+                value AS demand
+            FROM base
+            WHERE profile_name LIKE '%_E_Demand'
+        ),
+
+        renewable_profiles AS (
+            SELECT
+                year,
+                scenario,
+                location,
+                day,
+                hour,
+                profile_name,
+                value
+            FROM base
+            WHERE profile_name NOT LIKE '%_E_Demand'
+        ),
+
+        renewable_day_ratio AS (
+            SELECT
+                r.year,
+                r.scenario,
+                r.location,
+                r.day,
+                SUM(r.value) AS renewable_sum,
+                SUM(d.demand) AS demand_sum,
+                SUM(r.value) / NULLIF(SUM(d.demand), 0) AS ratio
+            FROM renewable_profiles r
+            JOIN demand d
+              ON r.year = d.year
+             AND r.scenario = d.scenario
+             AND r.location = d.location
+             AND r.day = d.day
+             AND r.hour = d.hour
+            GROUP BY r.year, r.scenario, r.location, r.day
+        ),
+
+        worst_renewable_day AS (
+            SELECT year, scenario, location, day
+            FROM (
+                SELECT *,
+                       ROW_NUMBER() OVER (
+                           PARTITION BY year, location
+                           ORDER BY ratio ASC
+                       ) AS rn
+                FROM renewable_day_ratio
+            )
+            WHERE rn = 1
+        ),
+
+        peak_demand_day AS (
+            SELECT year, scenario, location, day
+            FROM (
+                SELECT
+                    year,
+                    scenario,
+                    location,
+                    day,
+                    SUM(demand) AS total_demand,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY year, location
+                        ORDER BY SUM(demand) DESC
+                    ) AS rn
+                FROM demand
+                GROUP BY year, scenario, location, day
+            )
+            WHERE rn = 1
+        ),
+
+        renewable_output AS (
+            SELECT
+                r.year,
+                1 as scenario,
+                r.hour AS timestep,
+                1 AS period,
+                r.profile_name,
+                r.value
+            FROM renewable_profiles r
+            JOIN worst_renewable_day w
+              ON r.year = w.year
+             AND r.scenario = w.scenario
+             AND r.location = w.location
+             AND r.day = w.day
+        ),
+
+        demand_output AS (
+            SELECT
+                d.year,
+                1 as scenario,
+                d.hour AS timestep,
+                1 AS period,
+                d.profile_name,
+                d.demand AS value
+            FROM demand d
+            JOIN peak_demand_day p
+              ON d.year = p.year
+             AND d.scenario = p.scenario
+             AND d.location = p.location
+             AND d.day = p.day
+        )
+
+        SELECT * FROM renewable_output
+        UNION ALL
+        SELECT * FROM demand_output
+        ORDER BY year, scenario, profile_name, timestep;
+        """
+    )
+end
+
 function plot_values_stocmethod_weight( #considering different options: stochastic_method, weight_type
     results_df::DataFrame,
     case_studies_df::DataFrame,
