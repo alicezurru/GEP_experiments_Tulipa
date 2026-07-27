@@ -2,7 +2,6 @@
 const MARKER_MAP = Dict(
     "per_scenario" => :utriangle,
     "cross_scenario" => :circle,
-    #"per_and_cross_scenario" => :star5
 )
 
 const COLOR_MAP_weight = Dict(

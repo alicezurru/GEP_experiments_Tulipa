@@ -122,9 +122,6 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
         results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
         results_with_options = filter(row -> row.weight_type != "dirac", results_with_options)
     end
-    # results_with_options = filter(row -> row.rp >= 10, results_with_options)
-    #results_with_options = filter(row -> row.method == "convex_hull", results_with_options)
-
     for g in groupby(results_with_options, :base_name)
         name = g.base_name[1]
         if name == "0_HourlyBenchmark"
@@ -148,11 +145,6 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
             error("Unknown weight_type: $weight_type")
         end
 
-        # if method == "k_means" || method == "k_medoids"
-        #     mcolin = get(COLOR_MAP_method, method) do
-        #         error("Unknown method: $method")
-        #     end
-        # end
 
         column = Symbol(values)
         xidx = [rp_index[rp] for rp in g_sorted.rp]
@@ -265,19 +257,6 @@ function plot_values_quantiles(
             markercolor=mcolin
         )
     end
-
-    # for (label, marker) in MARKER_MAP
-    #     short_label = replace(label, "_scenario" => "")
-    #     scatter!(p, [NaN], [NaN]; markershape=marker, color=:gray30, label=short_label)
-    # end
-
-    # for (label, color) in COLOR_MAP_method
-    #     scatter!(p, [NaN], [NaN]; markershape=:rect, color=color, label=label)
-    # end
-
-    # if include_dirac
-    #     scatter!(p, [NaN], [NaN]; markershape=:rect, color=:white, label="dirac weights")
-    # end
 
     savefig(p, savepath)
     @info "Plot saved in: $savepath"
@@ -407,8 +386,6 @@ function plot_values_quantiles_grid(
 
     # k_medoids 
     for col in cols
-        #label = string(col)
-        #title_txt = isnothing(titles) ? "$label — k_medoids" : get(titles, col, "$label — k_medoids")
         push!(panels,
             plot_values_quantiles_panel(
                 stats_dfs[col], case_studies_df, values;

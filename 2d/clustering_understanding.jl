@@ -105,7 +105,7 @@ function main()
             connection = DuckDB.DBInterface.connect(DuckDB.DB)
             TIO.read_csv_folder(connection, input_data_path)
             # to use the ratio availability/demand
-            if use_ratio == true # be careful: this works now that we have only one demand location and one availability, so we divide availability by that only demand
+            if use_ratio == true
                 DuckDB.query(
                     connection,
                     "
@@ -235,7 +235,6 @@ function main()
                         [:timestep, :year, :scenario, :period, :profile_name, :value]
                     ] # otherwise it throws an error (I am only reordering the columns)
 
-                    #select!(initial_representatives_df, Not(:scenario))
                     TC.cluster!(
                         connection,
                         period_duration,
@@ -278,46 +277,6 @@ function main()
                             AND d.profile_name = 'demand';
                                 ")
                 end
-                # elseif stochastic_method == :per_and_cross_scenario # new method
-                #     # for now without adding possibility of artificial period - maybe add later 
-                #     clustering_kwargs = Dict(
-                #         :add_cross => true,
-                #         :n_scenarios => n_scenarios,
-                #         :tol_skip => 0.10,
-                #         :heuristic_distance => false,
-                #         :learning_rate => learning_rate,
-                #         :niters => niters
-                #     )
-                #     layout = TC.ProfilesTableLayout(; cols_to_groupby=[:year, :scenario])
-
-                #     TC.cluster!(
-                #         connection,
-                #         period_duration,
-                #         round(Int, rp / n_scenarios);
-                #         method=method,
-                #         distance=distance,
-                #         weight_type=weight_type,
-                #         layout=layout,
-                #         clustering_kwargs,
-                #         weight_fitting_kwargs
-                #     )
-                #     if use_ratio == true
-                #         df_profiles_ratio_rp = TIO.get_table(connection, "profiles_rep_periods")
-                #         DuckDB.query(connection,
-                #             "UPDATE profiles_rep_periods AS x
-                #                 SET value =
-                #                     CASE
-                #                         WHEN x.profile_name = 'demand' THEN x.value
-                #                         ELSE x.value * d.value
-                #                     END
-                #                 FROM profiles_rep_periods AS d
-                #                 WHERE d.timestep   = x.timestep
-                #                 AND d.rep_period       = x.rep_period
-                #                 AND d.year       = x.year
-                #                 AND d.scenario   = x.scenario
-                #                 AND d.profile_name = 'demand';
-                #                     ")
-                #     end
 
             else
                 error("Unknown stochastic method: $stochastic_method")
