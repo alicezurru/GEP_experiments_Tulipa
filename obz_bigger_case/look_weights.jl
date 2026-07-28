@@ -71,7 +71,7 @@ results_df = DataFrame(;
 
 function main()
     n_scenarios = 1
-    
+
     # optimize the energy system for each case study
     for row in eachrow(case_studies_info)
         base_name = row[:base_name]
@@ -116,9 +116,7 @@ function main()
                 if add_worst_every_hour
                     df_profiles = TIO.get_table(connection, "profiles")
                     profiles = string.(unique(df_profiles.profile_name))
-                    # profiles = filter(p -> !occursin("demand", lowercase(p)), profiles)
-                    # println(length(profiles))
-                    create_init_rps_hourly(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    create_init_rps_hourly(connection, period_duration, profiles) # tested only for 1 year
                     if add_best_every_hour
                         create_init_rps_hourly_best(connection, period_duration, profiles)
                     end
@@ -127,9 +125,7 @@ function main()
                 if add_worst_sum
                     df_profiles = TIO.get_table(connection, "profiles")
                     profiles = string.(unique(df_profiles.profile_name))
-                    # profiles = filter(p -> !occursin("demand", lowercase(p)), profiles)
-                    # println(length(profiles))
-                    create_init_rps_daily(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    create_init_rps_daily(connection, period_duration, profiles) # tested only for 1 year
                 end
 
                 if stochastic_method == :per_scenario

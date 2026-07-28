@@ -146,12 +146,12 @@ function main()
         var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
         flow_ens = filter(row ->
                 occursin("ens", lowercase(row.from_asset)),
-                var_flow_df
-                )
+            var_flow_df
+        )
         flow_smr_ccs = filter(row ->
                 occursin("smr", lowercase(row.from_asset)),
-                var_flow_df
-                )
+            var_flow_df
+        )
 
         # count steps with loss of load
         n_lol_ens = count(row -> row.solution > 1e-8, eachrow(flow_ens))
@@ -166,13 +166,13 @@ function main()
         investment_cost_non_renewable = JuMP.value(energy_problem_benchmark.model[:assets_investment_cost_non_renewable])
         investment_cost_electrolyzer = JuMP.value(energy_problem_benchmark.model[:assets_investment_cost_electrolyzer])
 
-         var_investment_df = TIO.get_table(connection_benchmark, "var_assets_investment")
+        var_investment_df = TIO.get_table(connection_benchmark, "var_assets_investment")
         keywords = ["ocgt", "gas", "nuclear", "coal"]
         inv_non_ren = filter(
             row -> any(k -> occursin(k, lowercase(row.asset)), keywords),
             var_investment_df
         )
-        
+
         non_renewable_capacity = sum(
             row.solution * row.capacity
             for row in eachrow(inv_non_ren)
@@ -209,9 +209,7 @@ function main()
             investment_cost_renewable=investment_cost_renewable,
             investment_cost_non_renewable=investment_cost_non_renewable,
             investment_cost_electrolyzer=investment_cost_electrolyzer,
-            non_renewable_capacity=non_renewable_capacity,
-
-        )
+            non_renewable_capacity=non_renewable_capacity,)
         push!(results_df, new_results_row)
 
 
@@ -263,7 +261,7 @@ function main()
                     profiles = string.(unique(df_profiles.profile_name))
                     # profiles = filter(p -> !occursin("demand", lowercase(p)), profiles)
                     # println(length(profiles))
-                    create_init_rps_hourly(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    create_init_rps_hourly(connection, period_duration, profiles) # tested only for 1 year
                     if add_best_every_hour
                         create_init_rps_hourly_best(connection, period_duration, profiles)
                     end
@@ -272,9 +270,7 @@ function main()
                 if add_worst_sum
                     df_profiles = TIO.get_table(connection, "profiles")
                     profiles = string.(unique(df_profiles.profile_name))
-                    # profiles = filter(p -> !occursin("demand", lowercase(p)), profiles)
-                    # println(length(profiles))
-                    create_init_rps_daily(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    create_init_rps_daily(connection, period_duration, profiles) # tested only for 1 year
                 end
 
                 if stochastic_method == :per_scenario
@@ -399,12 +395,12 @@ function main()
                     var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
                     flow_ens = filter(row ->
                             occursin("ens", lowercase(row.from_asset)),
-                            var_flow_df
-                            )
+                        var_flow_df
+                    )
                     flow_smr_ccs = filter(row ->
                             occursin("smr", lowercase(row.from_asset)),
-                            var_flow_df
-                            )
+                        var_flow_df
+                    )
 
                     # count steps with loss of load
                     n_lol_ens = count(row -> row.solution > 1e-8, eachrow(flow_ens))
@@ -421,14 +417,14 @@ function main()
                     investment_cost_renewable = JuMP.value(energy_problem_benchmark.model[:assets_investment_cost_renewable])
                     investment_cost_non_renewable = JuMP.value(energy_problem_benchmark.model[:assets_investment_cost_non_renewable])
                     investment_cost_electrolyzer = JuMP.value(energy_problem_benchmark.model[:assets_investment_cost_electrolyzer])
-                    
+
                     var_investment_df = TIO.get_table(connection_benchmark, "var_assets_investment")
                     keywords = ["ocgt", "gas", "nuclear", "coal"]
                     inv_non_ren = filter(
                         row -> any(k -> occursin(k, lowercase(row.asset)), keywords),
                         var_investment_df
                     )
-                    
+
                     non_renewable_capacity = sum(
                         row.solution * row.capacity
                         for row in eachrow(inv_non_ren)

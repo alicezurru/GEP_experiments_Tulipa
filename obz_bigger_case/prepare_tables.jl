@@ -109,7 +109,7 @@ DuckDB.query(
 # ocgt = 55000.0
 # gas = 95000.0     
 # nuclear = 950000.0
-# eleectrolyzer 800000.0
+# electrolyzer 800000.0
 
 DuckDB.query(
     connection,
@@ -291,104 +291,6 @@ DuckDB.query(
     ORDER by t_flow_yearly.from_asset, t_flow_yearly.to_asset
     "
 )
-# profiles # for now i can remove them
-# DuckDB.query(
-#     connection,
-#     "CREATE OR REPLACE TABLE assets_timeframe_profiles AS
-#     SELECT
-#       asset,
-#       commission_year AS year,
-#       profile_type,
-#       profile_name
-#     FROM assets_storage_min_max_reservoir_level_profiles
-#     ORDER BY asset, year, profile_name
-#     ",
-# )
-# ASK DIEGO ABOUT THOSE
-# # asset partitions
-# DuckDB.query(
-#     connection,
-#     "CREATE OR REPLACE TABLE assets_rep_periods_partitions AS
-#     SELECT
-#         t.name AS asset,
-#         t.year,
-#         CASE WHEN t.partition::integer > 4 THEN t.partition::integer ELSE 1 END::varchar(255) AS partition,
-#         rep_periods_data.rep_period,
-#         'uniform' AS specification,
-#     FROM t_asset_yearly AS t
-#     LEFT JOIN rep_periods_data
-#         ON t.year = rep_periods_data.year
-#     ORDER BY asset, t.year, rep_period
-#     ",
-# )
-
-# # flow partitions
-# DuckDB.query(
-#     connection,
-#     "CREATE OR REPLACE TABLE flows_rep_periods_partitions AS
-#     SELECT
-#         flow.from_asset,
-#         flow.to_asset,
-#         t_from.year,
-#         t_from.rep_period,
-#         'uniform' AS specification,
-#         IF(
-#             flow.is_transport,
-#             greatest(t_from.partition::int, t_to.partition::int),
-#             least(t_from.partition::int, t_to.partition::int)
-#         )::varchar(255) AS partition,
-#     FROM flow
-#     LEFT JOIN assets_rep_periods_partitions AS t_from
-#         ON flow.from_asset = t_from.asset
-#     LEFT JOIN assets_rep_periods_partitions AS t_to
-#         ON flow.to_asset = t_to.asset
-#         AND t_from.year = t_to.year
-#         AND t_from.rep_period = t_to.rep_period
-#     ",
-# )
-
-# timeframe profiles # for now I can remove them
-# TulipaClustering.transform_wide_to_long!(
-#     connection,
-#     "min_max_reservoir_levels",
-#     "pivot_min_max_reservoir_levels",
-# )
-
-# period_duration = 24
-
-# DuckDB.query(
-#     connection,
-#     "
-#     CREATE OR REPLACE TABLE profiles_timeframe AS
-#     WITH cte_split_profiles AS (
-#         SELECT
-#             profile_name,
-#             year,
-#             1 + (timestep - 1) // $period_duration  AS period,
-#             1 + (timestep - 1)  % $period_duration AS timestep,
-#             value,
-#         FROM pivot_min_max_reservoir_levels
-#     )
-#     SELECT
-#         cte_split_profiles.profile_name,
-#         cte_split_profiles.year,
-#         cte_split_profiles.year AS milestone_year,
-#         cte_split_profiles.period,
-#         AVG(cte_split_profiles.value) AS value, -- Computing the average aggregation
-#     FROM cte_split_profiles
-#     GROUP BY
-#         cte_split_profiles.profile_name,
-#         cte_split_profiles.year,
-#         cte_split_profiles.period
-#     ORDER BY
-#         cte_split_profiles.profile_name,
-#         cte_split_profiles.year,
-#         cte_split_profiles.period
-#     ",
-# )
-
-# TEM.populate_with_defaults!(connection) this can run only after clustering
-
 # save the tables in csv to be reread everytime
 
 output_dir = joinpath(@__DIR__, "input_tables")

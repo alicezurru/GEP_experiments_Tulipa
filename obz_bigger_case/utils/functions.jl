@@ -460,7 +460,6 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
     results_with_options = outerjoin(case_studies_df, results_df, on="base_name", makeunique=true)
 
     results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
-    #results_with_options = filter(row -> row.rp >= 45, results_with_options)
 
     results_with_options = filter(row -> row.method != "conical_hull", results_with_options)
 
@@ -551,7 +550,6 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
             markershape=:rect, markersize=8, markercolor=:white,
             label="dirac weights")
     end
-    #ylims!(p, 0, 0.15)
 
     savefig(p, savepath)
     @info "Plot saved in: $savepath"
@@ -567,8 +565,6 @@ function plot_values_quantiles(
 )
     results_with_options = outerjoin(case_studies_df, stats_df, on="base_name", makeunique=true)
     results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
-
-    #results_with_options = filter(row -> row.rp >= 60, results_with_options)
 
 
     col_mean = Symbol(values * "_mean")
@@ -636,7 +632,6 @@ function plot_values_quantiles(
             markercolor=mcolin
         )
     end
-    # ylims!(p, 0.0, 0.15)
 
     savefig(p, savepath)
     @info "Plot saved in: $savepath"
@@ -770,8 +765,6 @@ function plot_values_quantiles_grid(
 
     # k_medoids 
     for col in cols
-        #label = string(col)
-        #title_txt = isnothing(titles) ? "$label — k_medoids" : get(titles, col, "$label — k_medoids")
         push!(panels,
             plot_values_quantiles_panel(
                 stats_dfs[col], case_studies_df, values;
@@ -856,17 +849,6 @@ function plot_cost_columns_precise(df::DataFrame, savepath::AbstractString)
 
     data_matrix = hcat(penalty, operational, investment_cost_electrolyzer, investment_cost_non_renewable, investment_cost_renewable, investment_cost_storage)
     label_order = ["Penalty Loss" "Operational Cost" "Investment Cost Electrolyzer" "Investment Cost Non Renewable" "Investment Cost Renewable" "Investment Cost Storage"]
-
-        
-    # colors = [
-    #         :red,          # penalty
-    #         :steelblue,    # operational
-    #         :orange,       # electrolyzer
-    #         :gray,         # non-renewable
-    #         :green,        # renewable
-    #         :purple        # storage
-    #     ]
-
 
     # Create stacked bar plot
     b = bar(

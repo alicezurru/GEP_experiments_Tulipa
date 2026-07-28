@@ -82,7 +82,7 @@ function main()
 
     DuckDB.close(connection_benchmark)
     is_first = true # to not consider time to compile
-    
+
 
 
     # optimize the energy system for each case study
@@ -131,7 +131,7 @@ function main()
                     profiles = string.(unique(df_profiles.profile_name))
                     # profiles = filter(p -> !occursin("demand", lowercase(p)), profiles)
                     # println(length(profiles))
-                    create_init_rps_hourly(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    create_init_rps_hourly(connection, period_duration, profiles) # tested only for 1 year
                     if add_best_every_hour
                         create_init_rps_hourly_best(connection, period_duration, profiles)
                     end
@@ -142,7 +142,7 @@ function main()
                     profiles = string.(unique(df_profiles.profile_name))
                     # profiles = filter(p -> !occursin("demand", lowercase(p)), profiles)
                     # println(length(profiles))
-                    create_init_rps_daily(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    create_init_rps_daily(connection, period_duration, profiles) # tested only for 1 year
 
                 end
 
@@ -155,17 +155,17 @@ function main()
                         ] # otherwise it throws an error (I am only reordering the columns)
                         if is_first
                             TC.cluster!(
-                                    connection,
-                                    period_duration,
-                                    round(Int, rp / n_scenarios);
-                                    method=method,
-                                    distance=distance,
-                                    initial_representatives=init_rps_df,
-                                    weight_type=weight_type,
-                                    layout=layout,
-                                    clustering_kwargs,
-                                    weight_fitting_kwargs
-                                )
+                                connection,
+                                period_duration,
+                                round(Int, rp / n_scenarios);
+                                method=method,
+                                distance=distance,
+                                initial_representatives=init_rps_df,
+                                weight_type=weight_type,
+                                layout=layout,
+                                clustering_kwargs,
+                                weight_fitting_kwargs
+                            )
                             is_first=false
                         end
                         time_to_cluster = @elapsed TC.cluster!(
@@ -183,16 +183,16 @@ function main()
                     else
                         if is_first
                             TC.cluster!(
-                                    connection,
-                                    period_duration,
-                                    round(Int, rp / n_scenarios);
-                                    method=method,
-                                    distance=distance,
-                                    weight_type=weight_type,
-                                    layout=layout,
-                                    clustering_kwargs,
-                                    weight_fitting_kwargs
-                                )
+                                connection,
+                                period_duration,
+                                round(Int, rp / n_scenarios);
+                                method=method,
+                                distance=distance,
+                                weight_type=weight_type,
+                                layout=layout,
+                                clustering_kwargs,
+                                weight_fitting_kwargs
+                            )
                             is_first=false
                         end
                         time_to_cluster = @elapsed TC.cluster!(
@@ -216,17 +216,17 @@ function main()
                         ] # otherwise it throws an error (I am only reordering the columns)
                         if is_first
                             TC.cluster!(
-                                    connection,
-                                    period_duration,
-                                    rp;
-                                    method=method,
-                                    distance=distance,
-                                    initial_representatives=init_rps_df,
-                                    weight_type=weight_type,
-                                    layout=layout,
-                                    clustering_kwargs,
-                                    weight_fitting_kwargs
-                                )
+                                connection,
+                                period_duration,
+                                rp;
+                                method=method,
+                                distance=distance,
+                                initial_representatives=init_rps_df,
+                                weight_type=weight_type,
+                                layout=layout,
+                                clustering_kwargs,
+                                weight_fitting_kwargs
+                            )
                             is_first=false
                         end
                         time_to_cluster = @elapsed TC.cluster!(
@@ -244,16 +244,16 @@ function main()
                     else
                         if is_first
                             TC.cluster!(
-                                    connection,
-                                    period_duration,
-                                    rp;
-                                    method=method,
-                                    distance=distance,
-                                    weight_type=weight_type,
-                                    layout=layout,
-                                    clustering_kwargs,
-                                    weight_fitting_kwargs
-                                )
+                                connection,
+                                period_duration,
+                                rp;
+                                method=method,
+                                distance=distance,
+                                weight_type=weight_type,
+                                layout=layout,
+                                clustering_kwargs,
+                                weight_fitting_kwargs
+                            )
                             is_first=false
                         end
                         time_to_cluster = @elapsed TC.cluster!(
@@ -284,17 +284,17 @@ function main()
                 CSV.write(joinpath(output_folder, "rep_periods_data"), df_rep_periods_data)
                 CSV.write(joinpath(output_folder, "timeframe_data"), df_timeframe_data)
 
-                    new_results_row = (
-                        base_name=base_name,
-                        rp=rp,
-                        time_to_cluster=time_to_cluster
-                    )
-                    push!(results_df, new_results_row)
-                    CSV.write(
-                        "outputs/results_partial.csv",
-                        results_df;
-                        writeheader=true
-                    )
+                new_results_row = (
+                    base_name=base_name,
+                    rp=rp,
+                    time_to_cluster=time_to_cluster
+                )
+                push!(results_df, new_results_row)
+                CSV.write(
+                    "outputs/results_partial.csv",
+                    results_df;
+                    writeheader=true
+                )
                 DuckDB.close(connection)
                 GC.gc()
             end

@@ -97,9 +97,7 @@ function main()
     # set up the connection and read the data
     connection_benchmark = DuckDB.DBInterface.connect(DuckDB.DB)
     TIO.read_csv_folder(connection_benchmark, input_data_path)
-    
-    # tables = DuckDB.execute(connection_benchmark, "SHOW TABLES") |> collect
-    # println(tables)
+
 
     # To make number of rps comparable with per and cross scenario
     # we consider the case that n_rps is not divisible by the number of scenarios
@@ -145,12 +143,12 @@ function main()
         var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
         flow_ens = filter(row ->
                 occursin("ens", lowercase(row.from_asset)),
-                var_flow_df
-                )
+            var_flow_df
+        )
         flow_smr_ccs = filter(row ->
                 occursin("smr", lowercase(row.from_asset)),
-                var_flow_df
-                )
+            var_flow_df
+        )
 
         # count steps with loss of load
         n_lol_ens = count(row -> row.solution > 1e-8, eachrow(flow_ens))
@@ -235,9 +233,7 @@ function main()
                 if add_worst_every_hour
                     df_profiles = TIO.get_table(connection, "profiles")
                     profiles = string.(unique(df_profiles.profile_name))
-                    # profiles = filter(p -> !occursin("demand", lowercase(p)), profiles)
-                    # println(length(profiles))
-                    create_init_rps_hourly(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    create_init_rps_hourly(connection, period_duration, profiles) # tested only for 1 year
                     if add_best_every_hour
                         create_init_rps_hourly_best(connection, period_duration, profiles)
                     end
@@ -246,9 +242,7 @@ function main()
                 if add_worst_sum
                     df_profiles = TIO.get_table(connection, "profiles")
                     profiles = string.(unique(df_profiles.profile_name))
-                    # profiles = filter(p -> !occursin("demand", lowercase(p)), profiles)
-                    # println(length(profiles))
-                    create_init_rps_daily(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    create_init_rps_daily(connection, period_duration, profiles) # tested only for 1 year
                 end
 
                 if stochastic_method == :per_scenario
@@ -362,12 +356,12 @@ function main()
                     var_flow_red_df = TIO.get_table(connection, "var_flow")
                     flow_ens_red = filter(row ->
                             occursin("ens", lowercase(row.from_asset)),
-                            var_flow_red_df
-                            )
+                        var_flow_red_df
+                    )
                     flow_smr_ccs_red = filter(row ->
                             occursin("smr", lowercase(row.from_asset)),
-                            var_flow_red_df
-                            )
+                        var_flow_red_df
+                    )
 
                     # count steps with loss of load
                     n_lol_ens_red = count(row -> row.solution > 1e-8, eachrow(flow_ens_red))
@@ -394,12 +388,12 @@ function main()
                     var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
                     flow_ens = filter(row ->
                             occursin("ens", lowercase(row.from_asset)),
-                            var_flow_df
-                            )
+                        var_flow_df
+                    )
                     flow_smr_ccs = filter(row ->
                             occursin("smr", lowercase(row.from_asset)),
-                            var_flow_df
-                            )
+                        var_flow_df
+                    )
 
                     # count steps with loss of load
                     n_lol_ens = count(row -> row.solution > 1e-8, eachrow(flow_ens))
