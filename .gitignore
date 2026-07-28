@@ -1,4 +1,10 @@
-obz_stochastic/create_more_scenarios
+obz_stochastic/create_more_scenarios/Availability_timeseries_raw
+
+obz_stochastic/create_more_scenarios/Demand_timeseries_raw
+
+obz_stochastic/create_more_scenarios/Inflow_timeseries_raw
+
+obz_stochastic/create_more_scenarios/input_data
 
 obz_stochastic/input_tables
 

@@ -35,6 +35,10 @@ distance_map = Dict(
 config = TOML.parsefile("config.toml")
 input_data_path = config["simulation"]["input_data"]
 heuristic_distance = config["clustering"]["heuristic_distance"]
+use_apgs = config["clustering"]["use_apgs"]
+perc_initial_clustering = config["clustering"]["perc_initial_clustering"]
+beta = config["clustering"]["beta"]
+alpha = config["clustering"]["alpha"]
 n_runs = config["simulation"]["n_runs"]
 add_worst_every_hour = config["extreme_periods"]["add_worst_every_hour"]
 add_best_every_hour = config["extreme_periods"]["add_best_every_hour"]
@@ -204,16 +208,23 @@ function main()
 
         weight_fitting_kwargs = Dict(
             :learning_rate => learning_rate,
-            :niters => niters
+            :niters => niters,
+            :alpha => alpha,
+            :beta => beta,
         )
         if method ∉ [:k_means, :k_medoids]
             clustering_kwargs = Dict(
                 :learning_rate => learning_rate,
                 :niters => niters,
                 :heuristic_distance => heuristic_distance,
+                :use_apgs => use_apgs,
+                :perc_initial_clustering => perc_initial_clustering
             )
         else
-            clustering_kwargs = Dict{Symbol,Any}()
+            clustering_kwargs = (
+                :use_apgs => use_apgs,
+                :perc_initial_clustering => perc_initial_clustering
+            )
         end
 
         if !run_case
@@ -408,12 +419,12 @@ function main()
                     var_flow_red_df = TIO.get_table(connection, "var_flow")
                     flow_ens_red = filter(row ->
                             occursin("ens", lowercase(row.from_asset)),
-                            var_flow_red_df
-                            )
+                        var_flow_red_df
+                    )
                     flow_smr_ccs_red = filter(row ->
                             occursin("smr", lowercase(row.from_asset)),
-                            var_flow_red_df
-                            )
+                        var_flow_red_df
+                    )
                     # count steps with loss of load
                     n_lol_ens_red = count(row -> row.solution > 1e-8, eachrow(flow_ens_red))
                     n_lol_smr_cca_red = count(row -> row.solution > 1e-8, eachrow(flow_smr_ccs_red))
@@ -439,12 +450,12 @@ function main()
                     var_flow_df = TIO.get_table(connection_benchmark, "var_flow")
                     flow_ens = filter(row ->
                             occursin("ens", lowercase(row.from_asset)),
-                            var_flow_df
-                            )
+                        var_flow_df
+                    )
                     flow_smr_ccs = filter(row ->
                             occursin("smr", lowercase(row.from_asset)),
-                            var_flow_df
-                            )
+                        var_flow_df
+                    )
 
                     # count steps with loss of load
                     n_lol_ens = count(row -> row.solution > 1e-8, eachrow(flow_ens))

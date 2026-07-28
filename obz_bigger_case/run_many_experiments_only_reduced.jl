@@ -35,6 +35,10 @@ distance_map = Dict(
 config = TOML.parsefile("config.toml")
 input_data_path = config["simulation"]["input_data"]
 heuristic_distance = config["clustering"]["heuristic_distance"]
+use_apgs = config["clustering"]["use_apgs"]
+perc_initial_clustering = config["clustering"]["perc_initial_clustering"]
+beta = config["clustering"]["beta"]
+alpha = config["clustering"]["alpha"]
 n_runs = config["simulation"]["n_runs"]
 add_worst_every_hour = config["extreme_periods"]["add_worst_every_hour"]
 add_best_every_hour = config["extreme_periods"]["add_best_every_hour"]
@@ -110,16 +114,23 @@ function main()
 
         weight_fitting_kwargs = Dict(
             :learning_rate => learning_rate,
-            :niters => niters
+            :niters => niters,
+            :alpha => alpha,
+            :beta => beta,
         )
         if method ∉ [:k_means, :k_medoids]
             clustering_kwargs = Dict(
                 :learning_rate => learning_rate,
                 :niters => niters,
                 :heuristic_distance => heuristic_distance,
+                :use_apgs => use_apgs,
+                :perc_initial_clustering => perc_initial_clustering
             )
         else
-            clustering_kwargs = Dict{Symbol,Any}()
+            clustering_kwargs = Dict(
+                :use_apgs => use_apgs,
+                :perc_initial_clustering => perc_initial_clustering
+            )
         end
 
         if !run_case
