@@ -28,5 +28,7 @@ Three different case study sets were conducted:
 
 To access the complete result files and input files, use the following link:
 
+https://zenodo.org/records/21648977
+
 
 
