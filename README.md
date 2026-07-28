@@ -23,12 +23,12 @@ To use the modified TulipaClustering.jl, which includes the modifications introd
 
 ## Case studies 
 
-Three different case study sets were conducted: 
+Five different case study sets were conducted: 
 2d, higher dimensional, many scenarios, deterministic OBZ and stochastic OBZ. 
 
 To access the complete result files and input files, use the following link:
 
-https://zenodo.org/records/21648977
+[Input data and results thesis](https://zenodo.org/records/21648977)
 
 
 
