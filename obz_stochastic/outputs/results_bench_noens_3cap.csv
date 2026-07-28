@@ -1,2 +1,0 @@
-base_name,rp,solver,time_to_cluster,time_to_read,time_to_create,time_to_solve,time_to_save,objective_value,termination_status,num_constraints,num_variables,time_to_resolve_benchmark,objective_value_resolve_benchmark,termination_status_resolve_benchmark,num_loss_of_load_e_demand,num_loss_of_load_h2_demand
-0_HourlyBenchmark,1,Xpress,0.0,101.0550748,464.4397159,2313.9840138,85.5672139,4.9931644695297414e8,OPTIMAL,32762400,21068023,0.0,0.0,,0,0

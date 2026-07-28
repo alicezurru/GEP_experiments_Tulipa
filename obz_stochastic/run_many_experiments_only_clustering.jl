@@ -141,9 +141,7 @@ function main()
                 if add_worst_every_hour
                     df_profiles = TIO.get_table(connection, "profiles")
                     profiles = string.(unique(df_profiles.profile_name))
-                    # profiles = filter(p -> !occursin("demand", lowercase(p)), profiles)
-                    # println(length(profiles))
-                    create_init_rps_hourly(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                    create_init_rps_hourly(connection, period_duration, profiles) # tested only for 1 year
                     if add_best_every_hour
                         create_init_rps_hourly_best(connection, period_duration, profiles)
                     end
@@ -152,10 +150,8 @@ function main()
                 if add_worst_sum
                     df_profiles = TIO.get_table(connection, "profiles")
                     profiles = string.(unique(df_profiles.profile_name))
-                    # profiles = filter(p -> !occursin("demand", lowercase(p)), profiles)
-                    # println(length(profiles))
                     if !one_for_all_scenarios
-                        create_init_rps_daily(connection, period_duration, profiles) # BE CAREFUL: tested only for 1 year
+                        create_init_rps_daily(connection, period_duration, profiles) # tested only for 1 year
                     else
                         create_init_rps_daily_ofas(connection, period_duration, profiles)
                     end

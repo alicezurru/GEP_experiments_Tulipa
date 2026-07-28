@@ -1,6 +1,6 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.6"
+julia_version = "1.12.4"
 manifest_format = "2.0"
 project_hash = "2a63480fa7387725ffd936b9a21e1f24966f8630"
 
@@ -1193,15 +1193,15 @@ version = "0.11.3"
 
 [[deps.TulipaClustering]]
 deps = ["CSV", "Clustering", "DataFrames", "Distances", "DuckDB", "DuckDB_jll", "LinearAlgebra", "ProgressBars", "SparseArrays", "Statistics", "TOML", "TulipaIO"]
-path = "D:/experiments_Tulipa_Alice/TulipaClustering.jl"
+git-tree-sha1 = "5efa5baecc3e84e12ff137c6ee444f34f80f6e67"
 uuid = "314fac8b-c762-4aa3-9d12-851379729163"
-version = "0.5.2"
+version = "0.5.3"
 
 [[deps.TulipaEnergyModel]]
-deps = ["CSV", "DuckDB", "DuckDB_jll", "HiGHS", "JSON", "JuMP", "MathOptInterface", "OrderedCollections", "ParametricOptInterface", "SparseArrays", "Statistics", "TOML", "TimerOutputs", "TulipaIO"]
-path = "D:/experiments_Tulipa_Alice/TulipaEnergyModel.jl"
+deps = ["CSV", "DuckDB", "HiGHS", "JSON", "JuMP", "MathOptInterface", "OrderedCollections", "ParametricOptInterface", "Statistics", "TOML", "TimerOutputs", "TulipaIO"]
+git-tree-sha1 = "649fb3be59970a2cbb9352c621abde0c781b3646"
 uuid = "5d7bd171-d18e-45a5-9111-f1f11ac5d04d"
-version = "0.20.1"
+version = "0.22.2"
 
 [[deps.TulipaIO]]
 deps = ["CSV", "DataFrames", "Dates", "DuckDB", "DuckDB_jll", "Glob", "HTTP", "JSON3", "PrettyTables", "Printf"]

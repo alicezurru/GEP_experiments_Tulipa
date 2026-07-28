@@ -11,7 +11,6 @@ function get_solver_parameters(optimizer::Symbol)
     elseif optimizer == :Gurobi
         return Gurobi.Optimizer, Dict("OutputFlag" => 1)
     elseif optimizer == :Xpress
-        #return Xpress.Optimizer, Dict("DEFAULTALG" => 4, "CROSSOVER" => 0)
         return Xpress.Optimizer, Dict("DEFAULTALG" => 4)
     else
         return HiGHS.Optimizer, Dict()
@@ -601,7 +600,6 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
     results_with_options = outerjoin(case_studies_df, results_df, on="base_name", makeunique=true)
 
     results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
-    #results_with_options = filter(row -> row.rp >= 45, results_with_options)
 
     results_with_options = filter(row -> row.method != "conical_hull", results_with_options)
 
@@ -692,7 +690,6 @@ function plot_values_stocmethod_method( # considering options: method, stochasti
             markershape=:rect, markersize=8, markercolor=:white,
             label="dirac weights")
     end
-    #ylims!(p, -100, 500)
 
     savefig(p, savepath)
     @info "Plot saved in: $savepath"
@@ -708,9 +705,6 @@ function plot_values_quantiles(
 )
     results_with_options = outerjoin(case_studies_df, stats_df, on="base_name", makeunique=true)
     results_with_options = filter(row -> row.base_name != "0_HourlyBenchmark", results_with_options)
-
-    #results_with_options = filter(row -> row.rp >= 60, results_with_options)
-
 
     col_mean = Symbol(values * "_mean")
     col_q25 = Symbol(values * "_q25")
@@ -777,7 +771,6 @@ function plot_values_quantiles(
             markercolor=mcolin
         )
     end
-    # ylims!(p, 0.0, 0.15)
 
     savefig(p, savepath)
     @info "Plot saved in: $savepath"
@@ -911,8 +904,6 @@ function plot_values_quantiles_grid(
 
     # k_medoids 
     for col in cols
-        #label = string(col)
-        #title_txt = isnothing(titles) ? "$label — k_medoids" : get(titles, col, "$label — k_medoids")
         push!(panels,
             plot_values_quantiles_panel(
                 stats_dfs[col], case_studies_df, values;
