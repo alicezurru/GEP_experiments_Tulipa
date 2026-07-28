@@ -1,3 +1,5 @@
+# Generation expansion planning
+
 This repository is part of the thesis: 
 
 Stochastic Programming for Energy Systems: Comparing Per-Scenario and Cross-Scenario Approaches and Controlling the Cost-Conservatism Trade-off
