@@ -7,6 +7,14 @@ Stochastic Programming for Energy Systems: Comparing Per-Scenario and Cross-Scen
 The thesis will be made publicly available on http://repository.tudelft.nl/.
 
 ## How to use
+To set up the environment, enter package mode by pressing `]` and activate the environment in the current directory:
+
+```julia
+pkg> activate .
+pkg> instantiate
+```
+
+
 
 To run the experiments, you need to use the uploaded version of `TulipaEnergyModel.jl`.
 
@@ -18,7 +26,7 @@ dev <path-to-TulipaEnergyModel.jl>
 
 Replace `<path-to-TulipaEnergyModel.jl>` with the location of the repository on your machine.
 
-To use the modified `TulipaClustering.jl`, which includes the modifications introduced with this thesis, follow the same procedure.
+In the same way, to use the modified `TulipaClustering.jl`, follow the same procedure.
 
 
 ## Case studies 
