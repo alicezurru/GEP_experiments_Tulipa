@@ -15,5 +15,8 @@ alpha = 0.0
 add_worst_every_hour = false
 add_best_every_hour = false # this can be true only if also the previous one is true
 add_worst_sum = true
-
 one_for_all_scenarios = false # this can be true only if using cross-scenario
+
+[weights_inter-period]
+storage_Dirac = false
+max_rp_storage = 0 # 0 is default

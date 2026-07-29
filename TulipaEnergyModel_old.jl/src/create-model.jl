@@ -71,8 +71,6 @@ function create_model(
     direct_model = false,
     rolling_horizon = false,
     rolling_horizon_window_length = 0,
-    storage_Dirac = false,
-    max_rp_storage = 0,
 )
     if rolling_horizon
         @assert rolling_horizon_window_length > 0
@@ -123,8 +121,6 @@ function create_model(
         connection,
         variables,
         constraints,
-        storage_Dirac,
-        max_rp_storage,
     )
 
     ## Rolling Horizon Parameters

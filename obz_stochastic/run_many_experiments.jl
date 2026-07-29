@@ -47,6 +47,8 @@ if add_best_every_hour && !add_worst_every_hour
     error("You can add best only when also worst is added")
 end
 one_for_all_scenarios = config["extreme_periods"]["one_for_all_scenarios"]
+storage_Dirac = config["weights_inter-period"]["storage_Dirac"]
+max_rp_storage = config["weights_inter-period"]["max_rp_storage"]
 
 
 case_studies_info = CSV.read(
@@ -346,7 +348,7 @@ function main()
 
                 TEM.populate_with_defaults!(connection)
 
-                time_to_read = @elapsed energy_problem = TEM.EnergyProblem(connection; storage_Dirac=true, max_rp_storage=0)
+                time_to_read = @elapsed energy_problem = TEM.EnergyProblem(connection; storage_Dirac=storage_Dirac, max_rp_storage=max_rp_storage)
 
                 for solver in solvers
                     optimizer, parameters = get_solver_parameters(solver)
@@ -358,8 +360,8 @@ function main()
                         optimizer_parameters=parameters,
                         model_file_name="",
                         enable_names=enable_names,
-                        storage_Dirac=true,
-                        max_rp_storage=0
+                        storage_Dirac=storage_Dirac,
+                        max_rp_storage=max_rp_storage
                     )
 
                     output_folder = joinpath(@__DIR__, "outputs", case_name, string(solver))

@@ -268,19 +268,21 @@ function add_expression_terms_over_clustered_year_constraints!(
     connection,
     cons::TulipaConstraint,
     flow::TulipaVariable,
-    workspace;
+    workspace,
+    storage_Dirac,
+    max_rp_storage;
     is_storage_level = false,
 )
     num_rows = get_num_rows(connection, cons)
 
     cases = [(expr_key = :outgoing, asset_match = :from_asset)]
     if is_storage_level
-        push!(cases, (expr_key = :incoming, asset_match = :to_asset))
+        push!(cases, (expr_key = :incoming, asset_match = :to_asset))# we have incoming and outgoing for storage level
     end
 
     for case in cases
         attach_expression!(cons, case.expr_key, Vector{JuMP.AffExpr}(undef, num_rows))
-        cons.expressions[case.expr_key] .= JuMP.AffExpr(0.0)
+        cons.expressions[case.expr_key] .= JuMP.AffExpr(0.0) # creates a jump affine expression for every long term storage constraint row
     end
 
     grouped_cons_table_name = "t_grouped_$(cons.table_name)"
@@ -292,15 +294,112 @@ function add_expression_terms_over_clustered_year_constraints!(
         [:id, :period_block_start, :period_block_end],
     )
 
-    grouped_rpmap_over_rp_table_name = "t_grouped_rpmap_over_rp"
-    _create_group_table_if_not_exist!(
-        connection,
-        "rep_periods_mapping",
-        grouped_rpmap_over_rp_table_name,
-        [:year, :scenario, :rep_period],
-        [:period, :weight];
-        order_agg_by = :period,
-    )
+    if storage_Dirac
+        if max_rp_storage > 0
+            error("You can either use dirac weights for storage OR a max amount of rps - not both")
+        end
+        DuckDB.execute(
+            connection,
+            "
+                CREATE OR REPLACE TABLE rep_periods_mapping_storage AS
+                SELECT
+                    year,
+                    period,
+                    rep_period,
+                    CAST(1.0 AS DOUBLE) AS weight,
+                    scenario
+                FROM (
+                    SELECT
+                        *,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY year, period, scenario
+                            ORDER BY weight DESC, rep_period
+                        ) AS rn
+                    FROM rep_periods_mapping
+                )
+                WHERE rn = 1;
+            ",
+        ) # create another table with the new weights
+
+        grouped_rpmap_over_rp_table_name = "t_grouped_rpmap_over_rp"
+        _create_group_table_if_not_exist!(
+            connection,
+            "rep_periods_mapping_storage",
+            grouped_rpmap_over_rp_table_name,
+            [:year, :scenario, :rep_period],
+            [:period, :weight];
+            order_agg_by = :period,
+        )
+    elseif max_rp_storage > 0
+        DuckDB.execute(
+            connection,
+            "
+            CREATE OR REPLACE TABLE rep_periods_mapping_storage AS
+            WITH ranked AS (
+                SELECT
+                    *,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY year, period, scenario
+                        ORDER BY weight DESC, rep_period
+                    ) AS rn,
+                    SUM(weight) OVER (
+                        PARTITION BY year, period, scenario
+                        ORDER BY weight DESC, rep_period
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                    ) AS cum_weight
+                FROM rep_periods_mapping
+            ),
+
+            selected AS (
+                SELECT *
+                FROM ranked
+                WHERE
+                    rn <= $max_rp_storage
+                    AND cum_weight - weight < 0.9
+            ),
+
+            normalized AS (
+                SELECT
+                    year,
+                    period,
+                    rep_period,
+                    weight,
+                    scenario,
+                    SUM(weight) OVER (
+                        PARTITION BY year, period, scenario
+                    ) AS total_selected_weight
+                FROM selected
+            )
+
+            SELECT
+                year,
+                period,
+                rep_period,
+                CAST(weight / total_selected_weight AS DOUBLE) AS weight,
+                scenario
+            FROM normalized;
+            ",
+        ) # create another table with the new weights
+        grouped_rpmap_over_rp_table_name = "t_grouped_rpmap_over_rp"
+        _create_group_table_if_not_exist!(
+            connection,
+            "rep_periods_mapping_storage",
+            grouped_rpmap_over_rp_table_name,
+            [:year, :scenario, :rep_period],
+            [:period, :weight];
+            order_agg_by = :period,
+        )
+    else
+        grouped_rpmap_over_rp_table_name = "t_grouped_rpmap_over_rp"
+        _create_group_table_if_not_exist!(
+            connection,
+            "rep_periods_mapping",
+            grouped_rpmap_over_rp_table_name,
+            [:year, :scenario, :rep_period],
+            [:period, :weight];
+            order_agg_by = :period,
+        )
+    end
 
     for case in cases
         from_or_to = case.asset_match
@@ -427,7 +526,13 @@ function add_expression_terms_over_clustered_year_constraints!(
     return
 end
 
-function add_expressions_to_constraints!(connection, variables, constraints)
+function add_expressions_to_constraints!(
+    connection,
+    variables,
+    constraints,
+    storage_Dirac,
+    max_rp_storage,
+)
     # creating a workspace with enough entries for any of the representative periods or normal periods
     maximum_num_timesteps = get_single_element_from_query_and_ensure_its_only_one(
         DuckDB.query(connection, "SELECT MAX(num_timesteps::BIGINT) FROM rep_periods_data"),
@@ -531,20 +636,26 @@ function add_expressions_to_constraints!(connection, variables, constraints)
         connection,
         constraints[:balance_storage_over_clustered_year],
         variables[:flow],
-        workspace;
+        workspace,
+        storage_Dirac,
+        max_rp_storage;
         is_storage_level = true,
     )
     @timeit to "add_expression_terms_over_clustered_year_constraints!" add_expression_terms_over_clustered_year_constraints!(
         connection,
         constraints[:max_energy_over_clustered_year],
         variables[:flow],
-        workspace;
+        workspace,
+        storage_Dirac,
+        max_rp_storage;
     )
     @timeit to "add_expression_terms_over_clustered_year_constraints!" add_expression_terms_over_clustered_year_constraints!(
         connection,
         constraints[:min_energy_over_clustered_year],
         variables[:flow],
-        workspace;
+        workspace,
+        storage_Dirac,
+        max_rp_storage;
     )
     for table_name in (
         :min_output_flow_with_unit_commitment,
@@ -564,7 +675,7 @@ function add_expressions_to_constraints!(connection, variables, constraints)
     return
 end
 
-function prepare_profiles_structure(connection)
+function prepare_profiles_structure(connection; storage_Dirac = false, max_rp_storage = 0)
     # Independent of being rolling horizon or not, these are complete
     rep_period = Dict(
         (row.profile_name, row.year, row.rep_period) =>
@@ -606,6 +717,93 @@ function prepare_profiles_structure(connection)
     # profiles of rep_periods (asset_milestone.storage_inflows is
     # asset-specific and is not used here).
     # These profiles are scenario-specific since rep_periods_mapping depends on scenario
+
+    if storage_Dirac
+        if max_rp_storage > 0
+            error("You can either use dirac weights for storage OR a max amount of rps - not both")
+        end
+        DuckDB.execute(
+            connection,
+            "
+                CREATE OR REPLACE TABLE rep_periods_mapping_storage AS
+                SELECT
+                    year,
+                    period,
+                    rep_period,
+                    CAST(1.0 AS DOUBLE) AS weight,
+                    scenario
+                FROM (
+                    SELECT
+                        *,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY year, period, scenario
+                            ORDER BY weight DESC, rep_period
+                        ) AS rn
+                    FROM rep_periods_mapping
+                )
+                WHERE rn = 1;
+            ",
+        ) # create another table with the new weights
+
+        used_rp_mapping = "rep_periods_mapping_storage"
+
+    elseif max_rp_storage > 0
+        DuckDB.execute(
+            connection,
+            "
+            CREATE OR REPLACE TABLE rep_periods_mapping_storage AS
+            WITH ranked AS (
+                SELECT
+                    *,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY year, period, scenario
+                        ORDER BY weight DESC, rep_period
+                    ) AS rn,
+                    SUM(weight) OVER (
+                        PARTITION BY year, period, scenario
+                        ORDER BY weight DESC, rep_period
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                    ) AS cum_weight
+                FROM rep_periods_mapping
+            ),
+
+            selected AS (
+                SELECT *
+                FROM ranked
+                WHERE
+                    rn <= $max_rp_storage
+                    AND cum_weight - weight < 0.9
+            ),
+
+            normalized AS (
+                SELECT
+                    year,
+                    period,
+                    rep_period,
+                    weight,
+                    scenario,
+                    SUM(weight) OVER (
+                        PARTITION BY year, period, scenario
+                    ) AS total_selected_weight
+                FROM selected
+            )
+
+            SELECT
+                year,
+                period,
+                rep_period,
+                CAST(weight / total_selected_weight AS DOUBLE) AS weight,
+                scenario
+            FROM normalized;
+            ",
+        ) # create another table with the new weights
+
+        used_rp_mapping = "rep_periods_mapping_storage"
+
+    else
+        used_rp_mapping = "rep_periods_mapping"
+    end
+
     for row in DuckDB.query(
         connection,
         """
@@ -650,7 +848,7 @@ function prepare_profiles_structure(connection)
                     rp_map.period,
                     SUM(cte_profile_rp.value * rp_map.weight) AS value
                 FROM cte_profile_rp
-                INNER JOIN rep_periods_mapping AS rp_map
+                INNER JOIN $used_rp_mapping AS rp_map
                     ON cte_profile_rp.year = rp_map.year
                     AND cte_profile_rp.scenario = rp_map.scenario
                     AND cte_profile_rp.rep_period = rp_map.rep_period

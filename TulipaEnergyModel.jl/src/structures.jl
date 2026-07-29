@@ -278,7 +278,12 @@ mutable struct EnergyProblem
     Constructs a new EnergyProblem object using the `connection`.
     This will call relevant functions to generate all input that is required for the model creation.
     """
-    function EnergyProblem(connection; model_parameters_file = "")
+    function EnergyProblem(
+        connection;
+        model_parameters_file = "",
+        storage_Dirac = false,
+        max_rp_storage = 0,
+    )
         @timeit to "create_internal_structure" create_internal_tables!(connection)
 
         variables = @timeit to "compute_variables_indices" compute_variables_indices(connection)
@@ -286,7 +291,11 @@ mutable struct EnergyProblem
         constraints =
             @timeit to "compute_constraints_indices" compute_constraints_indices(connection)
 
-        profiles = @timeit to "prepare_profiles_structure" prepare_profiles_structure(connection)
+        profiles = @timeit to "prepare_profiles_structure" prepare_profiles_structure(
+            connection;
+            storage_Dirac,
+            max_rp_storage,
+        )
 
         energy_problem = new(
             connection,
