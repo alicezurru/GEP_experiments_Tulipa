@@ -26,7 +26,7 @@ dev <path-to-TulipaEnergyModel.jl>
 
 Replace `<path-to-TulipaEnergyModel.jl>` with the location of the repository on your machine.
 
-In the same way, to use the modified `TulipaClustering.jl`, follow the same procedure.
+To use the modified `TulipaClustering.jl`, follow the same procedure.
 
 
 ## Case studies 
